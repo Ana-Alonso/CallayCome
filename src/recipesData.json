@@ -1,0 +1,368 @@
+[
+  {
+    "id": 1,
+    "name": "Tostadas con Aguacate y Huevo",
+    "meal_type": "desayuno",
+    "price": "economica",
+    "difficulty": "facil",
+    "health": "saludable",
+    "diet_type": "omnivoro",
+    "allergens": ["gluten"],
+    "ingredients": [
+      { "name": "Pan integral", "quantity": 2, "unit": "rebanadas" },
+      { "name": "Aguacate", "quantity": 0.5, "unit": "unidad" },
+      { "name": "Huevo", "quantity": 1, "unit": "unidad" },
+      { "name": "Aceite de oliva", "quantity": 5, "unit": "ml" },
+      { "name": "Sal", "quantity": 2, "unit": "g" }
+    ],
+    "instructions": [
+      "Tuesta las rebanadas de pan integral.",
+      "Machaca el aguacate en un bol con un poco de sal.",
+      "Cocina el huevo a la plancha con unas gotas de aceite de oliva.",
+      "Unta el aguacate sobre las tostadas y coloca el huevo encima."
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Avena con Plátano y Almendras",
+    "meal_type": "desayuno",
+    "price": "economica",
+    "difficulty": "facil",
+    "health": "saludable",
+    "diet_type": "vegano",
+    "allergens": ["frutos secos"],
+    "ingredients": [
+      { "name": "Copos de avena", "quantity": 50, "unit": "g" },
+      { "name": "Bebida de almendras", "quantity": 200, "unit": "ml" },
+      { "name": "Plátano", "quantity": 1, "unit": "unidad" },
+      { "name": "Almendras picadas", "quantity": 15, "unit": "g" },
+      { "name": "Canela en polvo", "quantity": 1, "unit": "g" }
+    ],
+    "instructions": [
+      "Calienta la bebida de almendras en un cazo e introduce la avena.",
+      "Cocina a fuego lento durante 5 minutos removiendo constantemente hasta obtener una textura cremosa.",
+      "Sirve en un bol, decora con rodajas de plátano, almendras picadas y una pizca de canela."
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Tortitas Americanas Clásicas",
+    "meal_type": "desayuno",
+    "price": "economica",
+    "difficulty": "intermedia",
+    "health": "no saludable",
+    "diet_type": "vegetariano",
+    "allergens": ["gluten", "lactosa"],
+    "ingredients": [
+      { "name": "Harina de trigo", "quantity": 150, "unit": "g" },
+      { "name": "Leche entera", "quantity": 200, "unit": "ml" },
+      { "name": "Huevo", "quantity": 1, "unit": "unidad" },
+      { "name": "Mantequilla", "quantity": 30, "unit": "g" },
+      { "name": "Azúcar", "quantity": 20, "unit": "g" },
+      { "name": "Levadura en polvo", "quantity": 8, "unit": "g" }
+    ],
+    "instructions": [
+      "Mezcla los ingredientes secos en un bol grande (harina, azúcar, levadura).",
+      "Bate el huevo con la leche y la mantequilla derretida.",
+      "Junta ambas preparaciones sin batir en exceso (deben quedar pequeños grumos).",
+      "Engrasa una sartén con mantequilla y vierte porciones de masa. Cocina hasta que salgan burbujas, dale la vuelta y dora el otro lado."
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Huevos Rancheros",
+    "meal_type": "desayuno",
+    "price": "economica",
+    "difficulty": "intermedia",
+    "health": "saludable",
+    "diet_type": "omnivoro",
+    "allergens": [],
+    "ingredients": [
+      { "name": "Huevo", "quantity": 2, "unit": "unidades" },
+      { "name": "Tortillas de maíz", "quantity": 2, "unit": "unidades" },
+      { "name": "Frijoles refritos", "quantity": 100, "unit": "g" },
+      { "name": "Tomate triturado", "quantity": 100, "unit": "g" },
+      { "name": "Cebolla", "quantity": 0.5, "unit": "unidad" },
+      { "name": "Chile jalapeño", "quantity": 10, "unit": "g" },
+      { "name": "Aceite de oliva", "quantity": 10, "unit": "ml" }
+    ],
+    "instructions": [
+      "Sofríe la cebolla picada y el jalapeño en una sartén con aceite. Añade el tomate y cocina durante 8 minutos hasta tener una salsa espesa.",
+      "Calienta las tortillas de maíz en una plancha y úntales los frijoles calientes.",
+      "Fríe los huevos al gusto en otra sartén con aceite.",
+      "Coloca un huevo sobre cada tortilla y baña todo con la salsa ranchera."
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Batido Verde Energizante",
+    "meal_type": "desayuno",
+    "price": "economica",
+    "difficulty": "facil",
+    "health": "saludable",
+    "diet_type": "vegano",
+    "allergens": [],
+    "ingredients": [
+      { "name": "Espinacas frescas", "quantity": 50, "unit": "g" },
+      { "name": "Manzana verde", "quantity": 1, "unit": "unidad" },
+      { "name": "Plátano", "quantity": 1, "unit": "unidad" },
+      { "name": "Agua de coco", "quantity": 250, "unit": "ml" },
+      { "name": "Semillas de chía", "quantity": 10, "unit": "g" }
+    ],
+    "instructions": [
+      "Lava bien las espinacas y la manzana verde.",
+      "Corta la manzana y el plátano en trozos medianos.",
+      "Introduce todos los ingredientes en una batidora de vaso.",
+      "Tritura a máxima potencia hasta lograr una textura homogénea y sin trozos."
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Lentejas Guisadas al Estilo Casero",
+    "meal_type": "comida",
+    "price": "economica",
+    "difficulty": "intermedia",
+    "health": "saludable",
+    "diet_type": "vegano",
+    "allergens": [],
+    "ingredients": [
+      { "name": "Lentejas secas", "quantity": 200, "unit": "g" },
+      { "name": "Zanahoria", "quantity": 2, "unit": "unidades" },
+      { "name": "Patata", "quantity": 1, "unit": "unidad" },
+      { "name": "Pimiento verde", "quantity": 1, "unit": "unidad" },
+      { "name": "Cebolla", "quantity": 1, "unit": "unidad" },
+      { "name": "Ajo", "quantity": 2, "unit": "dientes" },
+      { "name": "Tomate maduro", "quantity": 1, "unit": "unidad" },
+      { "name": "Pimentón dulce", "quantity": 5, "unit": "g" },
+      { "name": "Laurel", "quantity": 1, "unit": "hoja" },
+      { "name": "Aceite de oliva", "quantity": 20, "unit": "ml" }
+    ],
+    "instructions": [
+      "Pica la cebolla, el ajo, el pimiento y el tomate.",
+      "En una olla con aceite de oliva sofríe las verduras picadas hasta que estén tiernas.",
+      "Añade el pimentón dulce, mezcla rápido para que no se queme e incorpora las lentejas, la patata cortada en dados, las zanahorias en rodajas y la hoja de laurel.",
+      "Cubre todo con agua fría (unos 3 dedos por encima), añade sal y cocina a fuego medio-bajo durante 40-45 minutos hasta que las lentejas estén blandas."
+    ]
+  },
+  {
+    "id": 7,
+    "name": "Paella de Marisco Premium",
+    "meal_type": "comida",
+    "price": "cara",
+    "difficulty": "dificil",
+    "health": "saludable",
+    "diet_type": "omnivoro",
+    "allergens": ["crustaceos", "pescado"],
+    "ingredients": [
+      { "name": "Arroz bomba", "quantity": 250, "unit": "g" },
+      { "name": "Caldo de pescado", "quantity": 750, "unit": "ml" },
+      { "name": "Langostinos", "quantity": 8, "unit": "unidades" },
+      { "name": "Mejillones", "quantity": 8, "unit": "unidades" },
+      { "name": "Calamar", "quantity": 150, "unit": "g" },
+      { "name": "Pimiento rojo", "quantity": 0.5, "unit": "unidad" },
+      { "name": "Ajo", "quantity": 2, "unit": "dientes" },
+      { "name": "Tomate rallado", "quantity": 2, "unit": "unidades" },
+      { "name": "Azafrán en hebras", "quantity": 0.2, "unit": "g" },
+      { "name": "Aceite de oliva", "quantity": 30, "unit": "ml" }
+    ],
+    "instructions": [
+      "En una paella con aceite, marca los langostinos y resérvalos. Sofríe el calamar troceado.",
+      "Agrega el pimiento rojo picado y el ajo. Deja pochar e integra el tomate rallado.",
+      "Añade el arroz bomba, sofríelo 2 minutos. Añade el azafrán e incorpora el caldo de pescado hirviendo.",
+      "Reparte el arroz, cocina a fuego fuerte 8 minutos. Reduce el fuego, coloca los mejillones y langostinos por encima, y cocina otros 10 minutos hasta que el caldo se absorba. Deja reposar 5 minutos tapado."
+    ]
+  },
+  {
+    "id": 8,
+    "name": "Pechuga de Pollo con Verduras al Horno",
+    "meal_type": "comida",
+    "price": "economica",
+    "difficulty": "facil",
+    "health": "saludable",
+    "diet_type": "omnivoro",
+    "allergens": [],
+    "ingredients": [
+      { "name": "Pechuga de pollo", "quantity": 300, "unit": "g" },
+      { "name": "Brócoli", "quantity": 150, "unit": "g" },
+      { "name": "Pimiento rojo", "quantity": 1, "unit": "unidad" },
+      { "name": "Cebolla morada", "quantity": 1, "unit": "unidad" },
+      { "name": "Aceite de oliva", "quantity": 15, "unit": "ml" },
+      { "name": "Orégano", "quantity": 2, "unit": "g" },
+      { "name": "Pimienta negra", "quantity": 2, "unit": "g" }
+    ],
+    "instructions": [
+      "Precalienta el horno a 200°C.",
+      "Corta el pollo y las verduras (brócoli, pimiento, cebolla) en trozos medianos.",
+      "Coloca todo en una bandeja de horno, añade aceite de oliva, sal, pimienta y orégano.",
+      "Hornea durante 20-25 minutos hasta que el pollo esté hecho y las verduras ligeramente doradas."
+    ]
+  },
+  {
+    "id": 9,
+    "name": "Spaghetti alla Carbonara Tradicional",
+    "meal_type": "comida",
+    "price": "economica",
+    "difficulty": "intermedia",
+    "health": "no saludable",
+    "diet_type": "omnivoro",
+    "allergens": ["gluten", "lactosa"],
+    "ingredients": [
+      { "name": "Spaghetti", "quantity": 200, "unit": "g" },
+      { "name": "Guanciale o panceta", "quantity": 100, "unit": "g" },
+      { "name": "Huevo", "quantity": 2, "unit": "unidades" },
+      { "name": "Queso Pecorino Romano", "quantity": 50, "unit": "g" },
+      { "name": "Pimienta negra", "quantity": 5, "unit": "g" }
+    ],
+    "instructions": [
+      "Cuece la pasta en abundante agua con sal.",
+      "Dora el guanciale cortado en tiras en una sartén sin aceite adicional hasta que esté crujiente.",
+      "En un bol, bate las yemas y los huevos enteros junto con el queso rallado y abundante pimienta negra recién molida.",
+      "Escurre la pasta al dente directamente en la sartén con el guanciale (fuera del fuego), añade el huevo batido y mezcla enérgicamente con unas cucharadas de agua de cocción para crear una crema sedosa."
+    ]
+  },
+  {
+    "id": 10,
+    "name": "Hamburguesa Ternera Gourmet con Patatas",
+    "meal_type": "comida",
+    "price": "cara",
+    "difficulty": "intermedia",
+    "health": "no saludable",
+    "diet_type": "omnivoro",
+    "allergens": ["gluten", "lactosa"],
+    "ingredients": [
+      { "name": "Carne picada de ternera", "quantity": 300, "unit": "g" },
+      { "name": "Pan de hamburguesa", "quantity": 2, "unit": "unidades" },
+      { "name": "Queso Cheddar", "quantity": 2, "unit": "lonchas" },
+      { "name": "Bacon", "quantity": 4, "unit": "tiras" },
+      { "name": "Patatas", "quantity": 2, "unit": "unidades" },
+      { "name": "Lechuga", "quantity": 50, "unit": "g" },
+      { "name": "Tomate", "quantity": 1, "unit": "unidad" },
+      { "name": "Aceite de girasol", "quantity": 200, "unit": "ml" }
+    ],
+    "instructions": [
+      "Pela y corta las patatas en tiras. Fríelas en abundante aceite de girasol hasta dorar.",
+      "Forma las hamburguesas con la carne sazonada. Cocínalas a la plancha.",
+      "Coloca el queso cheddar encima de la carne al final para que se derrita. Cocina el bacon hasta que esté crujiente.",
+      "Monta las hamburguesas con lechuga, tomate, la carne, el cheddar y el bacon. Sirve con las patatas fritas."
+    ]
+  },
+  {
+    "id": 11,
+    "name": "Ensalada César con Pollo",
+    "meal_type": "cena",
+    "price": "economica",
+    "difficulty": "intermedia",
+    "health": "no saludable",
+    "diet_type": "omnivoro",
+    "allergens": ["gluten", "lactosa"],
+    "ingredients": [
+      { "name": "Pechuga de pollo", "quantity": 150, "unit": "g" },
+      { "name": "Lechuga romana", "quantity": 200, "unit": "g" },
+      { "name": "Pan de molde para picatostes", "quantity": 1, "unit": "rebanada" },
+      { "name": "Queso parmesano", "quantity": 30, "unit": "g" },
+      { "name": "Salsa César", "quantity": 40, "unit": "ml" },
+      { "name": "Aceite de oliva", "quantity": 10, "unit": "ml" }
+    ],
+    "instructions": [
+      "Sazona y cocina el pollo a la plancha. Corta en tiras.",
+      "Corta el pan de molde en cubitos y dóralos en la sartén con un poco de aceite de oliva.",
+      "Lava y corta la lechuga romana.",
+      "Mezcla la lechuga en una ensaladera, añade el pollo, los picatostes de pan, las lascas de parmesano y la salsa César."
+    ]
+  },
+  {
+    "id": 12,
+    "name": "Crema de Calabacín Suave",
+    "meal_type": "cena",
+    "price": "economica",
+    "difficulty": "facil",
+    "health": "saludable",
+    "diet_type": "vegetariano",
+    "allergens": ["lactosa"],
+    "ingredients": [
+      { "name": "Calabacín", "quantity": 2, "unit": "unidades" },
+      { "name": "Puerro", "quantity": 1, "unit": "unidad" },
+      { "name": "Patata", "quantity": 1, "unit": "unidad" },
+      { "name": "Quesitos en porciones", "quantity": 3, "unit": "unidades" },
+      { "name": "Aceite de oliva", "quantity": 15, "unit": "ml" },
+      { "name": "Sal", "quantity": 3, "unit": "g" }
+    ],
+    "instructions": [
+      "Lava y corta los calabacines (con piel), el puerro y la patata pelada.",
+      "Rehoga el puerro en una cazuela con aceite de oliva. Añade el calabacín y la patata.",
+      "Cubre con agua justa, añade sal y cuece durante 20 minutos.",
+      "Añade los quesitos en porciones y tritura todo con una batidora de mano hasta lograr una textura fina."
+    ]
+  },
+  {
+    "id": 13,
+    "name": "Salmón a la Plancha con Espárragos",
+    "meal_type": "cena",
+    "price": "cara",
+    "difficulty": "facil",
+    "health": "saludable",
+    "diet_type": "omnivoro",
+    "allergens": ["pescado"],
+    "ingredients": [
+      { "name": "Lomo de salmón fresco", "quantity": 200, "unit": "g" },
+      { "name": "Espárragos trigueros", "quantity": 100, "unit": "g" },
+      { "name": "Limón", "quantity": 0.5, "unit": "unidad" },
+      { "name": "Aceite de oliva", "quantity": 5, "unit": "ml" },
+      { "name": "Sal en escamas", "quantity": 2, "unit": "g" }
+    ],
+    "instructions": [
+      "Lava los espárragos trigueros y córtales la parte dura del tallo.",
+      "Cocina los espárragos a la plancha con una cucharadita de aceite de oliva hasta que estén tiernos.",
+      "Sazona el salmón. Hazlo a la plancha a fuego medio, primero por el lado de la piel (unos 4 minutos) y luego dale la vuelta (unos 3 minutos).",
+      "Sirve el salmón rociado con jugo de limón y acompañado de los espárragos."
+    ]
+  },
+  {
+    "id": 14,
+    "name": "Tacos de Tofu y Aguacate",
+    "meal_type": "cena",
+    "price": "economica",
+    "difficulty": "facil",
+    "health": "saludable",
+    "diet_type": "vegano",
+    "allergens": ["soja"],
+    "ingredients": [
+      { "name": "Tofu firme", "quantity": 150, "unit": "g" },
+      { "name": "Aguacate", "quantity": 0.5, "unit": "unidad" },
+      { "name": "Tortillas de maíz", "quantity": 3, "unit": "unidades" },
+      { "name": "Cilantro fresco", "quantity": 10, "unit": "g" },
+      { "name": "Tomate picado", "quantity": 50, "unit": "g" },
+      { "name": "Especias taco (comino, ajo, pimentón)", "quantity": 5, "unit": "g" },
+      { "name": "Aceite de oliva", "quantity": 10, "unit": "ml" }
+    ],
+    "instructions": [
+      "Escurre el tofu y desmígalo. Saltéalo en una sartén con aceite y las especias de taco durante 10 minutos hasta que esté dorado.",
+      "Calienta las tortillas de maíz en una sartén limpia.",
+      "Rellena cada tortilla con el tofu salteado, aguacate cortado en dados y tomate picado.",
+      "Decora con cilantro picado fresco."
+    ]
+  },
+  {
+    "id": 15,
+    "name": "Tortilla de Patatas Española",
+    "meal_type": "cena",
+    "price": "economica",
+    "difficulty": "intermedia",
+    "health": "saludable",
+    "diet_type": "vegetariano",
+    "allergens": [],
+    "ingredients": [
+      { "name": "Huevo", "quantity": 5, "unit": "unidades" },
+      { "name": "Patatas", "quantity": 400, "unit": "g" },
+      { "name": "Cebolla", "quantity": 150, "unit": "g" },
+      { "name": "Aceite de oliva", "quantity": 150, "unit": "ml" },
+      { "name": "Sal", "quantity": 5, "unit": "g" }
+    ],
+    "instructions": [
+      "Pela y corta las patatas en láminas finas y pica la cebolla.",
+      "Fríe la cebolla y las patatas en una sartén con abundante aceite de oliva a fuego medio-bajo para que se confiten (cocinen sin dorarse demasiado) unos 20 minutos.",
+      "Escurre el aceite sobrante. Bate los huevos en un bol grande con sal y mezcla con las patatas y cebolla escurridas. Deja reposar 5 minutos.",
+      "Cuaja la tortilla en una sartén antiadherente con un par de cucharadas del aceite anterior. Cocina a fuego medio unos 3-4 minutos por lado usando un plato llano para darle la vuelta."
+    ]
+  }
+]
