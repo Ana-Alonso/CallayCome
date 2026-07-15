@@ -9,8 +9,11 @@ interface PlannerProps {
   on_auto_generate: () => void;
   on_clear: () => void;
   on_open_filters: () => void;
-  on_slot_click: (day: number, type: 'desayuno' | 'comida' | 'cena') => void;
-  on_slot_clear: (day: number, type: 'desayuno' | 'comida' | 'cena', e: React.MouseEvent) => void;
+  on_slot_click: (day: number, type: 'desayuno' | 'comida' | 'cena', slot_index: number) => void;
+  on_slot_clear: (day: number, type: 'desayuno' | 'comida' | 'cena', slot_index: number, e: React.MouseEvent) => void;
+  on_add_slot: (day: number, type: 'desayuno' | 'comida' | 'cena') => void;
+  on_remove_slot: (day: number, type: 'desayuno' | 'comida' | 'cena', slot_index: number) => void;
+  on_move_slot: (day: number, type: 'desayuno' | 'comida' | 'cena', slot_index: number, direction: 'up' | 'down') => void;
   current_role?: 'cocinitas' | 'miembro' | null;
   pending_suggestions?: number;
 }
@@ -23,6 +26,9 @@ export const Planner = ({
   on_open_filters,
   on_slot_click,
   on_slot_clear,
+  on_add_slot,
+  on_remove_slot,
+  on_move_slot,
   current_role,
   pending_suggestions = 0
 }: PlannerProps) => {
@@ -80,14 +86,18 @@ export const Planner = ({
       <DaysList>
         {(meal_plan.length > 0
           ? meal_plan
-          : Array.from({ length: 30 }, (_, i) => ({ day: i + 1, desayuno: null, comida: null, cena: null }))
+          : Array.from({ length: 30 }, (_, i) => ({ day: i + 1, desayuno: [null], comida: [null], cena: [null] }))
         ).map(day_plan => (
           <DayCard
             key={day_plan.day}
             plan_dia={day_plan}
             recipes={recipes}
-            on_slot_click={(type) => on_slot_click(day_plan.day, type)}
-            on_slot_clear={(type, e) => on_slot_clear(day_plan.day, type, e)}
+            on_slot_click={(type, slot_index) => on_slot_click(day_plan.day, type, slot_index)}
+            on_slot_clear={(type, slot_index, e) => on_slot_clear(day_plan.day, type, slot_index, e)}
+            on_add_slot={(type) => on_add_slot(day_plan.day, type)}
+            on_remove_slot={(type, slot_index) => on_remove_slot(day_plan.day, type, slot_index)}
+            on_move_slot={(type, slot_index, direction) => on_move_slot(day_plan.day, type, slot_index, direction)}
+            can_add_slots={!is_member}
           />
         ))}
       </DaysList>

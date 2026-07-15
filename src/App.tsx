@@ -73,6 +73,9 @@ export const App = () => {
     toggle_allergy,
     toggle_diet,
     handle_open_assign_meal,
+    handle_add_meal_slot,
+    handle_remove_meal_slot,
+    handle_move_meal_slot,
     handle_assign_recipe,
     handle_remove_assigned_recipe,
     get_selectable_recipes,
@@ -83,6 +86,7 @@ export const App = () => {
     handle_create_family,
     handle_join_family,
     handle_switch_family,
+    handle_leave_family,
     handle_approve_suggestion,
     handle_reject_suggestion
   } = use_app_state();
@@ -106,8 +110,8 @@ export const App = () => {
 
   const dialog_title = assigning_meal
     ? current_role === 'miembro'
-      ? `Sugerir Alternativa para el/la ${assigning_meal.type} (Día ${assigning_meal.day})`
-      : `Elegir plato para el/la ${assigning_meal.type} (Día ${assigning_meal.day})`
+      ? `Sugerir Alternativa para el/la ${assigning_meal.type} (Día ${assigning_meal.day}, opción ${assigning_meal.slot_index + 1})`
+      : `Elegir plato para el/la ${assigning_meal.type} (Día ${assigning_meal.day}, opción ${assigning_meal.slot_index + 1})`
     : '';
 
   if (auth_loading) {
@@ -237,6 +241,9 @@ export const App = () => {
           on_open_filters={handle_filter_modal_open}
           on_slot_click={handle_open_assign_meal}
           on_slot_clear={handle_remove_assigned_recipe}
+          on_add_slot={handle_add_meal_slot}
+          on_remove_slot={handle_remove_meal_slot}
+          on_move_slot={handle_move_meal_slot}
           current_role={current_role}
           pending_suggestions={suggestions.length}
         />
@@ -275,6 +282,7 @@ export const App = () => {
           handle_create_family={handle_create_family}
           handle_join_family={handle_join_family}
           handle_switch_family={handle_switch_family}
+          handle_leave_family={handle_leave_family}
           handle_approve_suggestion={handle_approve_suggestion}
           handle_reject_suggestion={handle_reject_suggestion}
         />

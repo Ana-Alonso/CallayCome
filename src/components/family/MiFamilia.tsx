@@ -33,6 +33,7 @@ interface MiFamiliaProps {
   handle_create_family: (name: string) => Promise<string | null>;
   handle_join_family: (invite_code: string) => Promise<void>;
   handle_switch_family: (family_id: string | null) => Promise<void>;
+  handle_leave_family: (family_id: string) => Promise<void>;
   handle_approve_suggestion: (id: number) => Promise<void>;
   handle_reject_suggestion: (id: number) => Promise<void>;
 }
@@ -49,6 +50,7 @@ export const MiFamilia = ({
   handle_create_family,
   handle_join_family,
   handle_switch_family,
+  handle_leave_family,
   handle_approve_suggestion,
   handle_reject_suggestion
 }: MiFamiliaProps) => {
@@ -58,6 +60,7 @@ export const MiFamilia = ({
   const [new_family_code, set_new_family_code] = useState<string | null>(null);
   const [new_family_name, set_new_family_name] = useState<string>('');
   const [code_copied, set_code_copied] = useState<boolean>(false);
+  const [leaving_family_id, set_leaving_family_id] = useState<string | null>(null);
 
   if (!user) {
     return (
@@ -101,6 +104,20 @@ export const MiFamilia = ({
     } catch {
       set_code_copied(false);
     }
+  };
+
+  const handle_leave_click = async (family_id: string, role: 'cocinitas' | 'miembro'): Promise<void> => {
+    const confirm_message = role === 'cocinitas'
+      ? "Vas a abandonar esta unidad como 'El Cocinitas'. Si no hay reemplazo, la unidad puede disolverse. ¿Continuar?"
+      : "¿Seguro que quieres abandonar esta unidad familiar?";
+
+    if (!window.confirm(confirm_message)) {
+      return;
+    }
+
+    set_leaving_family_id(family_id);
+    await handle_leave_family(family_id);
+    set_leaving_family_id(null);
   };
 
   if (new_family_code) {
@@ -199,17 +216,27 @@ export const MiFamilia = ({
                       </TextMuted>
                     )}
                   </div>
-                  {isActive ? (
-                    <StatusBadge sx={{ backgroundColor: 'rgba(76,175,80,0.15)', borderColor: 'rgba(76,175,80,0.4)', color: '#81c784', fontSize: 11 }}>
-                      Activa
-                    </StatusBadge>
-                  ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+                    {isActive ? (
+                      <StatusBadge sx={{ backgroundColor: 'rgba(76,175,80,0.15)', borderColor: 'rgba(76,175,80,0.4)', color: '#81c784', fontSize: 11 }}>
+                        Activa
+                      </StatusBadge>
+                    ) : (
+                      <Boton
+                        texto="Activar"
+                        clase_css="btn-sm"
+                        on_click={() => handle_switch_family(fam.family_id)}
+                      />
+                    )}
                     <Boton
-                      texto="Activar"
+                      texto={leaving_family_id === fam.family_id ? 'Abandonando...' : 'Abandonar'}
                       clase_css="btn-sm"
-                      on_click={() => handle_switch_family(fam.family_id)}
+                      variante="outlined"
+                      color="error"
+                      deshabilitado={leaving_family_id === fam.family_id}
+                      on_click={() => handle_leave_click(fam.family_id, fam.role)}
                     />
-                  )}
+                  </div>
                 </FlexRow>
               </CardContainer>
             );

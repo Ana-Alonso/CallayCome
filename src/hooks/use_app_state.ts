@@ -18,6 +18,8 @@ import {
 } from '../services/supabase_client';
 import { NotificationService } from '../services/notification';
 
+type MealType = 'desayuno' | 'comida' | 'cena';
+
 export const use_app_state = () => {
   const [active_tab, set_active_tab] = useState<'plan' | 'despensa' | 'compra' | 'recetas' | 'familia'>('plan');
   const [recipes, set_recipes] = useState<Recipe[]>(local_recipes as Recipe[]);
@@ -43,8 +45,56 @@ export const use_app_state = () => {
     health: 'all'
   });
 
-  const [assigning_meal, set_assigning_meal] = useState<{ day: number; type: 'desayuno' | 'comida' | 'cena' } | null>(null);
+  const [assigning_meal, set_assigning_meal] = useState<{ day: number; type: MealType; slot_index: number } | null>(null);
   const [recipe_search, set_recipe_search] = useState<string>('');
+
+  const create_empty_day_plan = (day: number): MealPlanDay => ({
+    day,
+    desayuno: [null],
+    comida: [null],
+    cena: [null]
+  });
+
+  const ensure_slot_array = (value: unknown): Array<number | null> => {
+    if (Array.isArray(value)) {
+      const normalized = value
+        .map(item => (typeof item === 'number' ? item : null))
+        .filter(item => item === null || Number.isFinite(item));
+      return normalized.length > 0 ? normalized : [null];
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return [value];
+    }
+    return [null];
+  };
+
+  const normalize_day_plan = (value: unknown, day: number): MealPlanDay => {
+    const row = (value || {}) as {
+      desayuno?: unknown;
+      comida?: unknown;
+      cena?: unknown;
+      desayuno_slots?: unknown;
+      comida_slots?: unknown;
+      cena_slots?: unknown;
+    };
+
+    return {
+      day,
+      desayuno: ensure_slot_array(row.desayuno_slots ?? row.desayuno),
+      comida: ensure_slot_array(row.comida_slots ?? row.comida),
+      cena: ensure_slot_array(row.cena_slots ?? row.cena)
+    };
+  };
+
+  const serialize_day_plan_for_db = (dayPlan: MealPlanDay) => ({
+    day: dayPlan.day,
+    desayuno: dayPlan.desayuno[0] ?? null,
+    comida: dayPlan.comida[0] ?? null,
+    cena: dayPlan.cena[0] ?? null,
+    desayuno_slots: dayPlan.desayuno,
+    comida_slots: dayPlan.comida,
+    cena_slots: dayPlan.cena
+  });
 
   useEffect(() => {
     NotificationService.request_permission();
@@ -85,14 +135,23 @@ export const use_app_state = () => {
       set_shopping_items([]);
     }
     if (local_plan) {
-      set_meal_plan(JSON.parse(local_plan));
+      try {
+        const parsed = JSON.parse(local_plan);
+        if (Array.isArray(parsed)) {
+          const normalized = Array.from({ length: 30 }, (_, i) => {
+            const dayNum = i + 1;
+            const found = parsed.find((p: any) => p?.day === dayNum);
+            return normalize_day_plan(found, dayNum);
+          });
+          set_meal_plan(normalized);
+        } else {
+          set_meal_plan(Array.from({ length: 30 }, (_, i) => create_empty_day_plan(i + 1)));
+        }
+      } catch {
+        set_meal_plan(Array.from({ length: 30 }, (_, i) => create_empty_day_plan(i + 1)));
+      }
     } else {
-      const empty_plan: MealPlanDay[] = Array.from({ length: 30 }, (_, i) => ({
-        day: i + 1,
-        desayuno: null,
-        comida: null,
-        cena: null
-      }));
+      const empty_plan: MealPlanDay[] = Array.from({ length: 30 }, (_, i) => create_empty_day_plan(i + 1));
       set_meal_plan(empty_plan);
     }
   };
@@ -242,12 +301,7 @@ export const use_app_state = () => {
         const mappedPlan = Array.from({ length: 30 }, (_, i) => {
           const dayNum = i + 1;
           const found = plan.find(p => p.day === dayNum);
-          return {
-            day: dayNum,
-            desayuno: found ? found.desayuno : null,
-            comida: found ? found.comida : null,
-            cena: found ? found.cena : null
-          };
+          return normalize_day_plan(found, dayNum);
         });
         set_meal_plan(mappedPlan);
       } else {
@@ -275,7 +329,31 @@ export const use_app_state = () => {
         .eq('status', 'pendiente');
 
       if (suggs) {
+        const suggestion_ids: number[] = suggs.map((s: any) => Number(s.id));
+        let votes_by_suggestion: Record<number, Array<{ user_id: string; vote: 'like' | 'dislike' }>> = {};
+
+        if (suggestion_ids.length > 0) {
+          const { data: votes, error: votes_error } = await supabase
+            .from('recipe_suggestion_votes')
+            .select('suggestion_id, user_id, vote')
+            .in('suggestion_id', suggestion_ids);
+
+          if (votes_error) {
+            console.error(votes_error);
+          } else {
+            votes_by_suggestion = (votes || []).reduce((acc: Record<number, Array<{ user_id: string; vote: 'like' | 'dislike' }>>, v: any) => {
+              const key = Number(v.suggestion_id);
+              if (!acc[key]) {
+                acc[key] = [];
+              }
+              acc[key].push({ user_id: v.user_id, vote: v.vote as 'like' | 'dislike' });
+              return acc;
+            }, {});
+          }
+        }
+
         const mappedSuggs = suggs.map((s: any) => ({
+          votes: votes_by_suggestion[Number(s.id)] || [],
           id: s.id,
           family_id: s.family_id,
           day: s.day,
@@ -284,7 +362,10 @@ export const use_app_state = () => {
           suggested_by: s.suggested_by,
           status: s.status as 'pendiente' | 'aprobado' | 'rechazado',
           user_display_name: s.profiles?.display_name || 'Miembro',
-          recipe_name: s.recipes?.recipe_data?.name || 'Receta'
+          recipe_name: s.recipes?.recipe_data?.name || 'Receta',
+          likes_count: (votes_by_suggestion[Number(s.id)] || []).filter(v => v.vote === 'like').length,
+          dislikes_count: (votes_by_suggestion[Number(s.id)] || []).filter(v => v.vote === 'dislike').length,
+          my_vote: ((votes_by_suggestion[Number(s.id)] || []).find(v => v.user_id === user?.id)?.vote || null) as 'like' | 'dislike' | null
         }));
         set_suggestions(mappedSuggs);
       }
@@ -352,6 +433,154 @@ export const use_app_state = () => {
     NotificationService.send_notification(title, message);
   };
 
+  const get_actor_display_name = (): string => {
+    if (profile?.display_name && profile.display_name.trim().length > 0) {
+      return profile.display_name.trim();
+    }
+    if (profile?.email && profile.email.trim().length > 0) {
+      return profile.email.split('@')[0];
+    }
+    if (user?.email && user.email.trim().length > 0) {
+      return user.email.split('@')[0];
+    }
+    return 'Alguien';
+  };
+
+  const mark_family_notifications_as_read = async (notification_ids: number[]): Promise<void> => {
+    if (notification_ids.length === 0) {
+      return;
+    }
+    const supabase = get_supabase_client();
+    if (!supabase) {
+      return;
+    }
+    const { error } = await supabase
+      .from('family_notifications')
+      .update({ read_at: new Date().toISOString() })
+      .in('id', notification_ids);
+    if (error) {
+      console.error(error);
+    }
+  };
+
+  const send_family_notifications = async (
+    family_id: string,
+    title: string,
+    body: string,
+    recipient_roles: Array<'cocinitas' | 'miembro'> = ['cocinitas', 'miembro']
+  ): Promise<void> => {
+    if (!user) {
+      return;
+    }
+    const supabase = get_supabase_client();
+    if (!supabase) {
+      return;
+    }
+
+    const { data: members, error: members_error } = await supabase
+      .from('family_members')
+      .select('user_id, role')
+      .eq('family_id', family_id);
+    if (members_error) {
+      console.error(members_error);
+      return;
+    }
+
+    const recipient_ids = (members || [])
+      .filter((member: any) => recipient_roles.includes(member.role))
+      .map((member: any) => member.user_id as string)
+      .filter(member_id => member_id !== user.id);
+
+    if (recipient_ids.length === 0) {
+      return;
+    }
+
+    const rows = recipient_ids.map(recipient_id => ({
+      family_id,
+      recipient_user_id: recipient_id,
+      actor_user_id: user.id,
+      title,
+      body
+    }));
+
+    const { error: insert_error } = await supabase
+      .from('family_notifications')
+      .insert(rows);
+    if (insert_error) {
+      console.error(insert_error);
+    }
+  };
+
+  const load_pending_family_notifications = async (user_id: string): Promise<void> => {
+    const supabase = get_supabase_client();
+    if (!supabase) {
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('family_notifications')
+      .select('id, title, body')
+      .eq('recipient_user_id', user_id)
+      .is('read_at', null)
+      .order('created_at', { ascending: true })
+      .limit(50);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const rows = (data || []) as Array<{ id: number; title: string; body: string }>;
+    if (rows.length === 0) {
+      return;
+    }
+
+    rows.forEach(notification => {
+      trigger_push(notification.title, notification.body);
+    });
+
+    await mark_family_notifications_as_read(rows.map(notification => notification.id));
+  };
+
+  useEffect(() => {
+    if (!user?.id) {
+      return;
+    }
+    const supabase = get_supabase_client();
+    if (!supabase) {
+      return;
+    }
+
+    load_pending_family_notifications(user.id).catch(console.error);
+
+    const channel = supabase
+      .channel(`family-notifications-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'family_notifications',
+          filter: `recipient_user_id=eq.${user.id}`
+        },
+        (payload: any) => {
+          const row = payload.new as { id?: number; title?: string; body?: string };
+          if (!row?.title || !row?.body) {
+            return;
+          }
+          trigger_push(row.title, row.body);
+          if (typeof row.id === 'number') {
+            mark_family_notifications_as_read([row.id]).catch(console.error);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   const get_pantry_match_info = (recipe: Recipe) => {
     let matches = 0;
     const total = recipe.ingredients.length;
@@ -414,7 +643,7 @@ export const use_app_state = () => {
     });
   };
 
-  const handle_auto_generate_plan = (): void => {
+  const handle_auto_generate_plan = async (): Promise<void> => {
     const available_recipes = get_filtered_recipes();
     
     if (available_recipes.length === 0) {
@@ -427,7 +656,7 @@ export const use_app_state = () => {
 
     const base_plan: MealPlanDay[] = get_base_plan();
 
-    const get_best_candidate = (meal_type: 'desayuno' | 'comida' | 'cena'): number | null => {
+    const get_best_candidate = (meal_type: MealType): number | null => {
       const meal_candidates = available_recipes.filter(r => r.meal_type === meal_type);
       if (meal_candidates.length === 0) {
         const fallback_candidates = recipes.filter(r => r.meal_type === meal_type);
@@ -446,9 +675,9 @@ export const use_app_state = () => {
 
     const updated_plan = base_plan.map(day_plan => ({
       day: day_plan.day,
-      desayuno: get_best_candidate('desayuno'),
-      comida: get_best_candidate('comida'),
-      cena: get_best_candidate('cena')
+      desayuno: [get_best_candidate('desayuno')],
+      comida: [get_best_candidate('comida')],
+      cena: [get_best_candidate('cena')]
     }));
 
     set_meal_plan(updated_plan);
@@ -457,6 +686,30 @@ export const use_app_state = () => {
       "Hemos optimizado tu menú del mes priorizando las recetas con ingredientes que ya tienes en la despensa."
     );
 
+    if (profile?.active_family_id && get_current_role() === 'cocinitas') {
+      const supabase = get_supabase_client();
+      if (supabase) {
+        const rows = updated_plan.map(day_plan => ({
+          family_id: profile.active_family_id,
+          ...serialize_day_plan_for_db(day_plan)
+        }));
+        const { error } = await supabase
+          .from('meal_plans')
+          .upsert(rows, { onConflict: 'family_id,day' });
+        if (error) {
+          trigger_push("Error", "No se pudo guardar la planificación en la unidad familiar.");
+          console.error(error);
+        } else {
+          await send_family_notifications(
+            profile.active_family_id,
+            "Nueva planificación mensual",
+            `${get_actor_display_name()} ha creado una nueva planificación mensual.`,
+            ['miembro']
+          );
+        }
+      }
+    }
+
     calculate_missing_ingredients(updated_plan);
   };
 
@@ -464,7 +717,7 @@ export const use_app_state = () => {
     const needed: { [key: string]: { quantity: number; unit: string } } = {};
 
     plan_to_use.forEach(day => {
-      const active_ids = [day.desayuno, day.comida, day.cena].filter(id => id !== null) as number[];
+      const active_ids = [...day.desayuno, ...day.comida, ...day.cena].filter(id => id !== null) as number[];
       
       active_ids.forEach(id => {
         const recipe = recipes.find(r => r.id === id);
@@ -558,10 +811,24 @@ export const use_app_state = () => {
   const get_base_plan = (): MealPlanDay[] =>
     meal_plan.length > 0
       ? meal_plan
-      : Array.from({ length: 30 }, (_, i) => ({ day: i + 1, desayuno: null, comida: null, cena: null }));
+      : Array.from({ length: 30 }, (_, i) => create_empty_day_plan(i + 1));
+
+  const persist_family_day_plan = async (dayPlan: MealPlanDay): Promise<void> => {
+    if (!profile?.active_family_id) {
+      return;
+    }
+    const supabase = get_supabase_client();
+    if (!supabase) {
+      return;
+    }
+    await supabase.from('meal_plans').upsert({
+      family_id: profile.active_family_id,
+      ...serialize_day_plan_for_db(dayPlan)
+    }, { onConflict: 'family_id,day' });
+  };
 
   const handle_clear_plan = (): void => {
-    const cleared = get_base_plan().map(d => ({ ...d, desayuno: null, comida: null, cena: null }));
+    const cleared = get_base_plan().map(d => ({ ...d, desayuno: [null], comida: [null], cena: [null] }));
     set_meal_plan(cleared);
     set_shopping_items([]);
     if (supabase_connected) {
@@ -684,14 +951,23 @@ export const use_app_state = () => {
       );
 
       setTimeout(async () => {
+        if (supabase_connected && item.id) {
+          const supabase = get_supabase_client();
+          if (supabase) {
+            await supabase.from('shopping_list').delete().eq('id', item.id);
+          }
+        }
+
+        if (profile?.active_family_id) {
+          await send_family_notifications(
+            profile.active_family_id,
+            "Lista de la compra actualizada",
+            `${get_actor_display_name()} ha borrado "${item.ingredient_name}" de la lista de la compra.`
+          );
+        }
+
         set_shopping_items(prev => {
           const list = prev.filter((_, i) => i !== index);
-          if (supabase_connected) {
-            const supabase = get_supabase_client();
-            if (supabase && item.id) {
-              supabase.from('shopping_list').delete().eq('id', item.id);
-            }
-          }
           if (list.length === 0) {
             trigger_push("Lista de la Compra Completa", "¡Has comprado todos los ingredientes de la lista! Tu despensa está lista para cocinar.");
           }
@@ -719,8 +995,8 @@ export const use_app_state = () => {
     });
   };
 
-  const handle_open_assign_meal = (day: number, type: 'desayuno' | 'comida' | 'cena'): void => {
-    set_assigning_meal({ day, type });
+  const handle_open_assign_meal = (day: number, type: MealType, slot_index: number): void => {
+    set_assigning_meal({ day, type, slot_index });
     set_recipe_search('');
   };
 
@@ -844,6 +1120,12 @@ export const use_app_state = () => {
         .update({ active_family_id: family.id })
         .eq('id', user.id);
 
+      await send_family_notifications(
+        family.id,
+        "Nuevo miembro en la unidad",
+        `${get_actor_display_name()} se ha unido a la unidad familiar "${family.name}".`
+      );
+
       trigger_push("Te has unido 🏠", `Te uniste a la familia "${family.name}".`);
       await load_user_profile(user.id);
     } catch (err: any) {
@@ -869,6 +1151,54 @@ export const use_app_state = () => {
     }
   };
 
+  const handle_leave_family = async (family_id: string): Promise<void> => {
+    if (!user) return;
+    const supabase = get_supabase_client();
+    if (!supabase) return;
+
+    try {
+      const membership = my_families.find(f => f.family_id === family_id);
+      if (!membership) {
+        trigger_push("Error", "No perteneces a esa unidad familiar.");
+        return;
+      }
+
+      const remaining_families = my_families.filter(f => f.family_id !== family_id);
+      const is_leaving_active = profile?.active_family_id === family_id;
+      const fallback_active_family_id = remaining_families.length > 0 ? remaining_families[0].family_id : null;
+
+      if (is_leaving_active) {
+        await supabase
+          .from('profiles')
+          .update({ active_family_id: fallback_active_family_id })
+          .eq('id', user.id);
+      }
+
+      const { error: leave_error } = await supabase
+        .from('family_members')
+        .delete()
+        .eq('family_id', family_id)
+        .eq('user_id', user.id);
+
+      if (leave_error) {
+        throw new Error(leave_error.message);
+      }
+
+      if (membership.role === 'cocinitas') {
+        trigger_push(
+          "Has abandonado la unidad",
+          "Como eras 'El Cocinitas', la unidad familiar podría haberse disuelto si no quedaba otro cocinitas."
+        );
+      } else {
+        trigger_push("Unidad familiar abandonada", "Ya no formas parte de esa unidad familiar.");
+      }
+
+      await load_user_profile(user.id);
+    } catch (err: any) {
+      trigger_push("Error", err.message || "No se pudo abandonar la unidad familiar.");
+    }
+  };
+
   const handle_suggest_recipe = async (day: number, meal_type: 'desayuno' | 'comida' | 'cena', recipe_id: number): Promise<void> => {
     if (!profile?.active_family_id || !user) return;
     const supabase = get_supabase_client();
@@ -885,6 +1215,13 @@ export const use_app_state = () => {
           suggested_by: user.id,
           status: 'pendiente'
         }]);
+
+      await send_family_notifications(
+        profile.active_family_id,
+        "Nueva sugerencia para revisar",
+        `${get_actor_display_name()} ha propuesto un cambio para el día ${day} (${meal_type}).`,
+        ['cocinitas']
+      );
 
       trigger_push("Sugerencia Enviada 🍳", "Se ha sugerido la receta a 'El Cocinitas'.");
       await load_family_data(profile.active_family_id);
@@ -909,9 +1246,11 @@ export const use_app_state = () => {
 
       const updatedPlan = meal_plan.map(d => {
         if (d.day === sugg.day) {
+          const updatedSlots = [...d[sugg.meal_type]];
+          updatedSlots[0] = sugg.suggested_recipe_id;
           return {
             ...d,
-            [sugg.meal_type]: sugg.suggested_recipe_id
+            [sugg.meal_type]: updatedSlots
           };
         }
         return d;
@@ -920,13 +1259,7 @@ export const use_app_state = () => {
 
       const targetDay = updatedPlan.find(d => d.day === sugg.day);
       if (targetDay) {
-        await supabase.from('meal_plans').upsert({
-          family_id: profile.active_family_id,
-          day: sugg.day,
-          desayuno: targetDay.desayuno,
-          comida: targetDay.comida,
-          cena: targetDay.cena
-        }, { onConflict: 'family_id,day' });
+        await persist_family_day_plan(targetDay);
       }
 
       await supabase
@@ -966,7 +1299,7 @@ export const use_app_state = () => {
     if (!assigning_meal) {
       return;
     }
-    const { day, type } = assigning_meal;
+    const { day, type, slot_index } = assigning_meal;
     
     const role = get_current_role();
     if (profile?.active_family_id && role === 'miembro') {
@@ -977,33 +1310,27 @@ export const use_app_state = () => {
 
     const updated = get_base_plan().map(d => {
       if (d.day === day) {
-        return { ...d, [type]: recipe_id };
+        const slots = [...d[type]];
+        while (slots.length <= slot_index) {
+          slots.push(null);
+        }
+        slots[slot_index] = recipe_id;
+        return { ...d, [type]: slots };
       }
       return d;
     });
 
     set_meal_plan(updated);
     set_assigning_meal(null);
-    trigger_push("Menú Actualizado", `Día ${day}: Añadida receta para el/la ${type}.`);
+    trigger_push("Menú Actualizado", `Día ${day}: Añadida receta para el/la ${type} (opción ${slot_index + 1}).`);
 
-    if (profile?.active_family_id) {
-      const supabase = get_supabase_client();
-      if (supabase) {
-        const targetDay = updated.find(d => d.day === day);
-        if (targetDay) {
-          await supabase.from('meal_plans').upsert({
-            family_id: profile.active_family_id,
-            day,
-            desayuno: targetDay.desayuno,
-            comida: targetDay.comida,
-            cena: targetDay.cena
-          }, { onConflict: 'family_id,day' });
-        }
-      }
+    const targetDay = updated.find(d => d.day === day);
+    if (targetDay) {
+      await persist_family_day_plan(targetDay);
     }
   };
 
-  const handle_remove_assigned_recipe = async (day: number, type: 'desayuno' | 'comida' | 'cena', e: React.MouseEvent): Promise<void> => {
+  const handle_remove_assigned_recipe = async (day: number, type: MealType, slot_index: number, e: React.MouseEvent): Promise<void> => {
     e.stopPropagation();
 
     const role = get_current_role();
@@ -1014,27 +1341,120 @@ export const use_app_state = () => {
 
     const updated = get_base_plan().map(d => {
       if (d.day === day) {
-        return { ...d, [type]: null };
+        const slots = [...d[type]];
+        if (slot_index < slots.length) {
+          slots[slot_index] = null;
+        }
+        return { ...d, [type]: slots.length > 0 ? slots : [null] };
       }
       return d;
     });
     set_meal_plan(updated);
-    trigger_push("Receta Removida", `Se quitó el plato asignado para el/la ${type} del día ${day}.`);
+    trigger_push("Receta Removida", `Se quitó el plato asignado para el/la ${type} del día ${day} (opción ${slot_index + 1}).`);
 
-    if (profile?.active_family_id) {
-      const supabase = get_supabase_client();
-      if (supabase) {
-        const targetDay = updated.find(d => d.day === day);
-        if (targetDay) {
-          await supabase.from('meal_plans').upsert({
-            family_id: profile.active_family_id,
-            day,
-            desayuno: targetDay.desayuno,
-            comida: targetDay.comida,
-            cena: targetDay.cena
-          }, { onConflict: 'family_id,day' });
-        }
+    const targetDay = updated.find(d => d.day === day);
+    if (targetDay) {
+      await persist_family_day_plan(targetDay);
+    }
+  };
+
+  const handle_add_meal_slot = async (day: number, type: MealType): Promise<void> => {
+    const role = get_current_role();
+    if (profile?.active_family_id && role === 'miembro') {
+      trigger_push("Acceso Denegado", "Solo 'El Cocinitas' puede añadir nuevos slots de planificación.");
+      return;
+    }
+
+    const updated = get_base_plan().map(d => {
+      if (d.day === day) {
+        return { ...d, [type]: [...d[type], null] };
       }
+      return d;
+    });
+
+    set_meal_plan(updated);
+    trigger_push("Nuevo Slot Añadido", `Día ${day}: añadida una nueva opción para ${type}.`);
+
+    const targetDay = updated.find(d => d.day === day);
+    if (targetDay) {
+      await persist_family_day_plan(targetDay);
+    }
+  };
+
+  const handle_remove_meal_slot = async (day: number, type: MealType, slot_index: number): Promise<void> => {
+    const role = get_current_role();
+    if (profile?.active_family_id && role === 'miembro') {
+      trigger_push("Acceso Denegado", "Solo 'El Cocinitas' puede eliminar slots de planificación.");
+      return;
+    }
+
+    const dayPlan = get_base_plan().find(d => d.day === day);
+    if (!dayPlan) {
+      return;
+    }
+    if (dayPlan[type].length <= 1) {
+      trigger_push("Acción no permitida", "Cada comida debe mantener al menos una opción.");
+      return;
+    }
+    if (slot_index < 0 || slot_index >= dayPlan[type].length) {
+      return;
+    }
+
+    const updated = get_base_plan().map(d => {
+      if (d.day !== day) {
+        return d;
+      }
+      const slots = d[type].filter((_, index) => index !== slot_index);
+      return { ...d, [type]: slots.length > 0 ? slots : [null] };
+    });
+
+    set_meal_plan(updated);
+    trigger_push("Slot Eliminado", `Día ${day}: eliminada la opción ${slot_index + 1} de ${type}.`);
+
+    const targetDay = updated.find(d => d.day === day);
+    if (targetDay) {
+      await persist_family_day_plan(targetDay);
+    }
+  };
+
+  const handle_move_meal_slot = async (
+    day: number,
+    type: MealType,
+    slot_index: number,
+    direction: 'up' | 'down'
+  ): Promise<void> => {
+    const role = get_current_role();
+    if (profile?.active_family_id && role === 'miembro') {
+      trigger_push("Acceso Denegado", "Solo 'El Cocinitas' puede reordenar slots de planificación.");
+      return;
+    }
+
+    const dayPlan = get_base_plan().find(d => d.day === day);
+    if (!dayPlan) {
+      return;
+    }
+    const next_index = direction === 'up' ? slot_index - 1 : slot_index + 1;
+    if (slot_index < 0 || slot_index >= dayPlan[type].length || next_index < 0 || next_index >= dayPlan[type].length) {
+      return;
+    }
+
+    const updated = get_base_plan().map(d => {
+      if (d.day !== day) {
+        return d;
+      }
+      const slots = [...d[type]];
+      const temp = slots[slot_index];
+      slots[slot_index] = slots[next_index];
+      slots[next_index] = temp;
+      return { ...d, [type]: slots };
+    });
+
+    set_meal_plan(updated);
+    trigger_push("Opciones Reordenadas", `Día ${day}: opción movida ${direction === 'up' ? 'arriba' : 'abajo'} en ${type}.`);
+
+    const targetDay = updated.find(d => d.day === day);
+    if (targetDay) {
+      await persist_family_day_plan(targetDay);
     }
   };
 
@@ -1111,6 +1531,9 @@ export const use_app_state = () => {
     toggle_allergy,
     toggle_diet,
     handle_open_assign_meal,
+    handle_add_meal_slot,
+    handle_remove_meal_slot,
+    handle_move_meal_slot,
     handle_assign_recipe,
     handle_remove_assigned_recipe,
     get_selectable_recipes,
@@ -1121,6 +1544,7 @@ export const use_app_state = () => {
     handle_create_family,
     handle_join_family,
     handle_switch_family,
+    handle_leave_family,
     handle_approve_suggestion,
     handle_reject_suggestion
   };

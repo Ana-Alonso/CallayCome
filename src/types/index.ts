@@ -34,9 +34,9 @@ export interface ShoppingItem {
 
 export interface MealPlanDay {
   day: number;
-  desayuno: number | null;
-  comida: number | null;
-  cena: number | null;
+  desayuno: Array<number | null>;
+  comida: Array<number | null>;
+  cena: Array<number | null>;
 }
 
 export interface FilterState {
@@ -85,4 +85,7 @@ export interface RecipeSuggestion {
   status: 'pendiente' | 'aprobado' | 'rechazado';
   user_display_name?: string;
   recipe_name?: string;
+  likes_count?: number;
+  dislikes_count?: number;
+  my_vote?: 'like' | 'dislike' | null;
 }
