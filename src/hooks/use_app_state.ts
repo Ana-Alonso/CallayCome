@@ -8,7 +8,8 @@ import type {
   ToastMessage,
   Profile,
   FamilyMember,
-  RecipeSuggestion
+  RecipeSuggestion,
+  CookRecipeConfig
 } from '../types';
 import type { User } from '@supabase/supabase-js';
 import local_recipes from '../recipesData.json';
@@ -47,6 +48,7 @@ export const use_app_state = () => {
 
   const [assigning_meal, set_assigning_meal] = useState<{ day: number; type: MealType; slot_index: number } | null>(null);
   const [recipe_search, set_recipe_search] = useState<string>('');
+  const [start_date, set_start_date] = useState<string | null>(null);
 
   const create_empty_day_plan = (day: number): MealPlanDay => ({
     day,
@@ -123,6 +125,8 @@ export const use_app_state = () => {
     const local_pantry = localStorage.getItem('local_pantry');
     const local_shopping = localStorage.getItem('local_shopping');
     const local_plan = localStorage.getItem('local_plan');
+    const local_start_date = localStorage.getItem('calla_y_come_start_date');
+    set_start_date(local_start_date || null);
 
     if (local_pantry) {
       set_pantry_items(JSON.parse(local_pantry));
@@ -266,6 +270,48 @@ export const use_app_state = () => {
     if (!supabase) return;
 
     try {
+      let family_exists: any = null;
+      let start_date_val: string | null = null;
+
+      const { data: dataWithDate, error: errorWithDate } = await supabase
+        .from('family_units')
+        .select('id, start_date')
+        .eq('id', familyId)
+        .single();
+
+      if (errorWithDate) {
+        const { data: dataJustId } = await supabase
+          .from('family_units')
+          .select('id')
+          .eq('id', familyId)
+          .single();
+        if (dataJustId) {
+          family_exists = dataJustId;
+        }
+      } else {
+        family_exists = dataWithDate;
+        start_date_val = dataWithDate?.start_date || null;
+      }
+
+      if (!family_exists) {
+        trigger_push(
+          "Unidad Familiar Disuelta",
+          "La unidad familiar ya no existe. Es posible que 'El Cocinitas' haya eliminado su cuenta."
+        );
+        if (user) {
+          await load_user_profile(user.id);
+        } else {
+          load_local_data();
+        }
+        return;
+      }
+
+      if (start_date_val) {
+        set_start_date(start_date_val);
+      } else {
+        const local_start_date = localStorage.getItem('calla_y_come_start_date');
+        set_start_date(local_start_date || null);
+      }
       const { data: pItems } = await supabase
         .from('pantry')
         .select('*')
@@ -289,7 +335,8 @@ export const use_app_state = () => {
           ingredient_name: item.ingredient_name,
           quantity: Number(item.quantity),
           unit: item.unit,
-          purchased: item.purchased
+          purchased: item.purchased,
+          manual: item.manual || false
         })));
       }
 
@@ -318,7 +365,7 @@ export const use_app_state = () => {
           suggested_recipe_id,
           suggested_by,
           status,
-          profiles (
+          profiles:profiles!recipe_suggestions_suggested_by_fkey (
             display_name
           ),
           recipes (
@@ -716,6 +763,31 @@ export const use_app_state = () => {
 
   const calculate_missing_ingredients = (plan_to_use: MealPlanDay[]): void => {
     const needed: { [key: string]: { quantity: number; unit: string } } = {};
+    const ingredient_earliest_offset: { [key: string]: number } = {};
+
+    const get_current_day_number = (): number | null => {
+      if (!start_date) return null;
+      try {
+        const [year, month, day] = start_date.split('-').map(Number);
+        const start = new Date(year, month - 1, day);
+        start.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const diffTime = today.getTime() - start.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        const currentDay = diffDays + 1;
+
+        if (currentDay >= 1 && currentDay <= 30) {
+          return currentDay;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      return null;
+    };
+
+    const current_day_num = get_current_day_number();
 
     plan_to_use.forEach(day => {
       const active_ids = [...day.desayuno, ...day.comida, ...day.cena].filter(id => id !== null) as number[];
@@ -730,11 +802,25 @@ export const use_app_state = () => {
             } else {
               needed[key] = { quantity: ing.quantity, unit: ing.unit };
             }
+
+            let offset = day.day;
+            if (current_day_num !== null) {
+              if (day.day >= current_day_num) {
+                offset = day.day - current_day_num;
+              } else {
+                offset = day.day - current_day_num + 30;
+              }
+            }
+
+            if (ingredient_earliest_offset[key] === undefined || offset < ingredient_earliest_offset[key]) {
+              ingredient_earliest_offset[key] = offset;
+            }
           });
         }
       });
     });
 
+    const manual_items = shopping_items.filter(item => item.manual);
     const final_shopping: ShoppingItem[] = [];
 
     Object.keys(needed).forEach(key => {
@@ -749,21 +835,35 @@ export const use_app_state = () => {
           ingredient_name: key.charAt(0).toUpperCase() + key.slice(1),
           quantity: Number(missing_qty.toFixed(1)),
           unit: req.unit,
-          purchased: false
+          purchased: false,
+          manual: false
         });
       }
     });
 
-    set_shopping_items(final_shopping);
+    // Sort recipe-based shopping items by earliest offset (urgency)
+    final_shopping.sort((a, b) => {
+      const offsetA = ingredient_earliest_offset[a.ingredient_name.toLowerCase().trim()] ?? 999;
+      const offsetB = ingredient_earliest_offset[b.ingredient_name.toLowerCase().trim()] ?? 999;
+      return offsetA - offsetB;
+    });
+
+    // Append manual items to the top (since they are usually urgent immediate needs)
+    const combined_shopping = [
+      ...manual_items,
+      ...final_shopping
+    ];
+
+    set_shopping_items(combined_shopping);
 
     if (supabase_connected) {
-      sync_shopping_list_to_supabase(final_shopping);
+      sync_shopping_list_to_supabase(combined_shopping);
     }
 
-    if (final_shopping.length > 0) {
+    if (combined_shopping.length > 0) {
       trigger_push(
         "Lista de la Compra",
-        `🛒 Se han calculado ingredientes faltantes. Se añadieron ${final_shopping.length} artículos para comprar.`
+        `🛒 Se han calculado ingredientes faltantes. Se añadieron ${final_shopping.length} artículos, total: ${combined_shopping.length} en la lista.`
       );
     } else {
       trigger_push(
@@ -785,19 +885,40 @@ export const use_app_state = () => {
           ingredient_name: item.ingredient_name,
           quantity: item.quantity,
           unit: item.unit,
-          purchased: false,
+          purchased: item.purchased,
+          manual: item.manual || false,
           family_id: profile.active_family_id
         }));
-        await supabase.from('shopping_list').insert(rows);
-      } else {
-        await supabase.from('shopping_list').delete().neq('id', 0);
-        for (const item of list) {
-          await supabase.from('shopping_list').insert([{
+        
+        const { error } = await supabase.from('shopping_list').insert(rows);
+        if (error) {
+          console.warn("Schema does not support manual column yet, retrying without it:", error.message);
+          const fallback_rows = list.map(item => ({
             ingredient_name: item.ingredient_name,
             quantity: item.quantity,
             unit: item.unit,
-            purchased: false
-          }]);
+            purchased: item.purchased,
+            family_id: profile.active_family_id
+          }));
+          await supabase.from('shopping_list').insert(fallback_rows);
+        }
+      } else {
+        await supabase.from('shopping_list').delete().neq('id', 0);
+        for (const item of list) {
+          const base_row = {
+            ingredient_name: item.ingredient_name,
+            quantity: item.quantity,
+            unit: item.unit,
+            purchased: item.purchased
+          };
+          try {
+            const { error } = await supabase.from('shopping_list').insert([{ ...base_row, manual: item.manual || false }]);
+            if (error) {
+              await supabase.from('shopping_list').insert([base_row]);
+            }
+          } catch (e) {
+            await supabase.from('shopping_list').insert([base_row]);
+          }
         }
       }
     } catch (err) {
@@ -978,6 +1099,42 @@ export const use_app_state = () => {
     }
   };
 
+  const handle_add_custom_shopping_item = async (name: string, quantity: number, unit: string): Promise<void> => {
+    const newItem: ShoppingItem = {
+      ingredient_name: name.charAt(0).toUpperCase() + name.slice(1),
+      quantity,
+      unit,
+      purchased: false,
+      manual: true
+    };
+    
+    const updated_shopping = [newItem, ...shopping_items];
+    set_shopping_items(updated_shopping);
+
+    if (supabase_connected) {
+      const supabase = get_supabase_client();
+      if (supabase) {
+        const row = {
+          ingredient_name: newItem.ingredient_name,
+          quantity: newItem.quantity,
+          unit: newItem.unit,
+          purchased: false,
+          family_id: profile?.active_family_id || null
+        };
+        try {
+          const { error } = await supabase.from('shopping_list').insert([{ ...row, manual: true }]);
+          if (error) {
+            await supabase.from('shopping_list').insert([row]);
+          }
+        } catch (e) {
+          await supabase.from('shopping_list').insert([row]);
+        }
+      }
+    }
+
+    trigger_push("Lista de la Compra", `➕ Se ha añadido "${newItem.ingredient_name}" a la lista de la compra.`);
+  };
+
   const toggle_allergy = (allergy: string): void => {
     set_filters(prev => {
       const active = prev.allergies.includes(allergy)
@@ -1149,6 +1306,105 @@ export const use_app_state = () => {
       await load_user_profile(user.id);
     } catch (err: any) {
       trigger_push("Error", err.message);
+    }
+  };
+
+  const get_family_members = async (family_id: string): Promise<Array<{ user_id: string; role: string; display_name: string }>> => {
+    const supabase = get_supabase_client();
+    if (!supabase) return [];
+
+    try {
+      const { data: members } = await supabase
+        .from('family_members')
+        .select(`
+          user_id,
+          role,
+          profiles (
+            display_name,
+            email
+          )
+        `)
+        .eq('family_id', family_id);
+
+      if (!members) return [];
+
+      return members.map((m: any) => ({
+        user_id: m.user_id,
+        role: m.role,
+        display_name: m.profiles?.display_name || m.profiles?.email || 'Miembro'
+      }));
+    } catch (err) {
+      console.error(err);
+      return [];
+    }
+  };
+
+  const get_family_complaints = async (family_id: string): Promise<Record<string, number>> => {
+    const supabase = get_supabase_client();
+    if (!supabase) return {};
+
+    try {
+      const { data: suggs } = await supabase
+        .from('recipe_suggestions')
+        .select('id, suggested_by')
+        .eq('family_id', family_id);
+
+      const complaints: Record<string, number> = {};
+
+      if (suggs) {
+        suggs.forEach(s => {
+          const userId = s.suggested_by;
+          complaints[userId] = (complaints[userId] || 0) + 1;
+        });
+
+        const ids = suggs.map(s => s.id);
+        if (ids.length > 0) {
+          const { data: votes } = await supabase
+            .from('recipe_suggestion_votes')
+            .select('user_id, vote')
+            .in('suggestion_id', ids)
+            .eq('vote', 'dislike');
+
+          if (votes) {
+            votes.forEach(v => {
+              const userId = v.user_id;
+              complaints[userId] = (complaints[userId] || 0) + 1;
+            });
+          }
+        }
+      }
+
+      return complaints;
+    } catch (err) {
+      console.error("Error fetching quejometro stats:", err);
+      return {};
+    }
+  };
+
+  const handle_transfer_role = async (family_id: string, new_cocinitas_user_id: string): Promise<void> => {
+    if (!user) return;
+    const supabase = get_supabase_client();
+    if (!supabase) return;
+
+    try {
+      // Change old cocinitas to miembro
+      await supabase
+        .from('family_members')
+        .update({ role: 'miembro' })
+        .eq('family_id', family_id)
+        .eq('user_id', user.id);
+
+      // Promote new user to cocinitas
+      await supabase
+        .from('family_members')
+        .update({ role: 'cocinitas' })
+        .eq('family_id', family_id)
+        .eq('user_id', new_cocinitas_user_id);
+
+      trigger_push("Rol Transferido 🍳", "Has transferido el rol de 'El Cocinitas' a otro miembro.");
+      await load_user_profile(user.id);
+    } catch (err: any) {
+      trigger_push("Error", err.message || "No se pudo transferir el rol.");
     }
   };
 
@@ -1548,6 +1804,210 @@ export const use_app_state = () => {
     }
   };
 
+  const handle_cook_day = async (dayNum: number, configs: CookRecipeConfig[]): Promise<void> => {
+    const day_plan = get_base_plan().find(d => d.day === dayNum);
+    if (!day_plan) {
+      trigger_push("Error", "No se encontró el menú para ese día.");
+      return;
+    }
+
+    const to_subtract: Record<string, { qty: number; unit: string }> = {};
+
+    configs.forEach(conf => {
+      const recipe = recipes.find(r => r.id === conf.recipe_id);
+      if (recipe) {
+        recipe.ingredients.forEach(ing => {
+          const key = ing.name.toLowerCase().trim();
+          if (!to_subtract[key]) {
+            to_subtract[key] = { qty: 0, unit: ing.unit };
+          }
+          to_subtract[key].qty += (ing.quantity * conf.portions);
+        });
+      }
+    });
+
+    let updated_pantry = [...pantry_items];
+    const items_to_delete: number[] = [];
+    const items_to_update: Array<{ id: number; quantity: number }> = [];
+
+    for (const name_key of Object.keys(to_subtract)) {
+      const ing_to_sub = to_subtract[name_key];
+      const existing_index = updated_pantry.findIndex(
+        p => p.ingredient_name.toLowerCase().trim() === name_key
+      );
+
+      if (existing_index > -1) {
+        const item = updated_pantry[existing_index];
+        item.quantity = Math.max(0, item.quantity - ing_to_sub.qty);
+        
+        if (item.quantity <= 0) {
+          if (item.id) items_to_delete.push(item.id);
+        } else {
+          if (item.id) items_to_update.push({ id: item.id, quantity: item.quantity });
+        }
+      }
+    }
+
+    updated_pantry = updated_pantry.filter(p => p.quantity > 0);
+
+    // Save leftovers if requested
+    for (const conf of configs) {
+      if (conf.leftovers > 0) {
+        const r = recipes.find(rec => rec.id === conf.recipe_id);
+        if (r) {
+          const leftover_name = `Sobras de ${r.name}`;
+          const existing_leftover_idx = updated_pantry.findIndex(
+            p => p.ingredient_name.toLowerCase().trim() === leftover_name.toLowerCase().trim()
+          );
+
+          if (existing_leftover_idx > -1) {
+            updated_pantry[existing_leftover_idx].quantity += conf.leftovers;
+            if (supabase_connected && updated_pantry[existing_leftover_idx].id) {
+              const supabase = get_supabase_client();
+              if (supabase) {
+                await supabase
+                  .from('pantry')
+                  .update({ quantity: updated_pantry[existing_leftover_idx].quantity })
+                  .eq('id', updated_pantry[existing_leftover_idx].id);
+              }
+            }
+          } else {
+            const new_leftover: PantryItem = {
+              ingredient_name: leftover_name,
+              quantity: conf.leftovers,
+              unit: 'ración'
+            };
+            if (supabase_connected) {
+              const supabase = get_supabase_client();
+              if (supabase) {
+                const { data } = await supabase
+                  .from('pantry')
+                  .insert([{ ingredient_name: leftover_name, quantity: conf.leftovers, unit: 'ración', family_id: profile?.active_family_id || null }])
+                  .select();
+                if (data && data[0]) {
+                  new_leftover.id = data[0].id;
+                }
+              }
+            }
+            updated_pantry.push(new_leftover);
+          }
+        }
+      }
+    }
+
+    set_pantry_items(updated_pantry);
+
+    if (supabase_connected) {
+      const supabase = get_supabase_client();
+      if (supabase) {
+        if (items_to_delete.length > 0) {
+          await supabase.from('pantry').delete().in('id', items_to_delete);
+        }
+        for (const up of items_to_update) {
+          await supabase.from('pantry').update({ quantity: up.quantity }).eq('id', up.id);
+        }
+      }
+    }
+
+    const has_leftovers = configs.some(c => c.leftovers > 0);
+    trigger_push(
+      "¡Día Cocinado! 🍽️",
+      has_leftovers 
+        ? "Buen provecho. Se han restado los ingredientes usados y guardado las raciones de sobras en la despensa."
+        : "Buen provecho. Los ingredientes utilizados se han restado de tu despensa."
+    );
+  };
+
+  const get_panic_recipe = (): { recipe: Recipe; missing_count: number; pct: number } | null => {
+    const filtered = get_filtered_recipes();
+    if (filtered.length === 0) return null;
+
+    const ranked = filtered.map(recipe => {
+      const match_info = get_pantry_match_info(recipe);
+      const total = recipe.ingredients.length;
+      const missing_count = total - match_info.matches;
+      return {
+        recipe,
+        missing_count,
+        pct: match_info.pct
+      };
+    });
+
+    ranked.sort((a, b) => {
+      if (a.missing_count !== b.missing_count) {
+        return a.missing_count - b.missing_count;
+      }
+      return b.pct - a.pct;
+    });
+
+    return ranked[0] || null;
+  };
+
+  const get_nfc_payload = (): string => {
+    let current_day_num: number | null = null;
+    if (start_date) {
+      try {
+        const [year, month, day] = start_date.split('-').map(Number);
+        const start = new Date(year, month - 1, day);
+        start.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const diffTime = today.getTime() - start.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        const currentDay = diffDays + 1;
+
+        if (currentDay >= 1 && currentDay <= 30) {
+          current_day_num = currentDay;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    let menu_text = "No planificado";
+    const base_plan = get_base_plan();
+    if (current_day_num !== null) {
+      const day_plan = base_plan.find(d => d.day === current_day_num);
+      if (day_plan) {
+        const des = day_plan.desayuno.map(id => recipes.find(r => r.id === id)?.name).filter(Boolean).join(", ") || "Nada";
+        const com = day_plan.comida.map(id => recipes.find(r => r.id === id)?.name).filter(Boolean).join(", ") || "Nada";
+        const cen = day_plan.cena.map(id => recipes.find(r => r.id === id)?.name).filter(Boolean).join(", ") || "Nada";
+        menu_text = `🍳 Desayuno: ${des}\n🍲 Comida: ${com}\n🍽️ Cena: ${cen}`;
+      }
+    }
+
+    const urgent_items = shopping_items.slice(0, 5);
+    let shopping_text = "Lista urgente vacía";
+    if (urgent_items.length > 0) {
+      shopping_text = urgent_items.map(item => `- ${item.quantity} ${item.unit} de ${item.ingredient_name}`).join("\n");
+    }
+
+    return `📍 *Calla y Come - Vista NFC* 📲\n\n📅 *Día ${current_day_num || "?"} del plan*\n${menu_text}\n\n🛒 *Faltantes Urgentes*:\n${shopping_text}`;
+  };
+
+  const handle_change_start_date = async (date: string | null): Promise<void> => {
+    set_start_date(date);
+    localStorage.setItem('calla_y_come_start_date', date || '');
+
+    if (supabase_connected && profile?.active_family_id) {
+      const supabase = get_supabase_client();
+      if (supabase) {
+        try {
+          const { error } = await supabase
+            .from('family_units')
+            .update({ start_date: date })
+            .eq('id', profile.active_family_id);
+          if (error) {
+            console.warn("Error updating start_date in family_units:", error.message);
+          }
+        } catch (err) {
+          console.warn("Exception updating start_date in family_units:", err);
+        }
+      }
+    }
+  };
+
   return {
     active_tab,
     set_active_tab,
@@ -1595,9 +2055,18 @@ export const use_app_state = () => {
     handle_join_family,
     handle_switch_family,
     handle_leave_family,
+    handle_transfer_role,
+    get_family_members,
+    get_family_complaints,
     handle_approve_suggestion,
     handle_reject_suggestion,
     handle_suggest_recipe,
-    handle_vote_suggestion
+    handle_vote_suggestion,
+    start_date,
+    handle_change_start_date,
+    handle_cook_day,
+    get_panic_recipe,
+    get_nfc_payload,
+    handle_add_custom_shopping_item
   };
 };

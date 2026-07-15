@@ -364,5 +364,511 @@
       "Escurre el aceite sobrante. Bate los huevos en un bol grande con sal y mezcla con las patatas y cebolla escurridas. Deja reposar 5 minutos.",
       "Cuaja la tortilla en una sartén antiadherente con un par de cucharadas del aceite anterior. Cocina a fuego medio unos 3-4 minutos por lado usando un plato llano para darle la vuelta."
     ]
+  },
+  {
+    "id": 16,
+    "name": "Pan con Tomate y Jamón Serrano",
+    "meal_type": "desayuno",
+    "price": "economica",
+    "difficulty": "facil",
+    "health": "saludable",
+    "diet_type": "omnivoro",
+    "allergens": ["gluten"],
+    "ingredients": [
+      { "name": "Pan rústico", "quantity": 2, "unit": "rebanadas" },
+      { "name": "Tomate maduro", "quantity": 1, "unit": "unidad" },
+      { "name": "Jamón serrano", "quantity": 50, "unit": "g" },
+      { "name": "Aceite de oliva virgen extra", "quantity": 15, "unit": "ml" },
+      { "name": "Sal", "quantity": 2, "unit": "g" },
+      { "name": "Ajo", "quantity": 1, "unit": "diente" }
+    ],
+    "instructions": [
+      "Tuesta las rebanadas de pan rústico.",
+      "Corta un diente de ajo a la mitad y frótalo ligeramente sobre la miga de pan caliente.",
+      "Ralla el tomate maduro en un bol y repártelo uniformemente sobre las rebanadas.",
+      "Sazona con una pizca de sal y añade un buen chorro de aceite de oliva virgen extra.",
+      "Coloca las lonchas de jamón serrano por encima y sirve inmediatamente."
+    ]
+  },
+  {
+    "id": 17,
+    "name": "Churros con Chocolate Caseros",
+    "meal_type": "desayuno",
+    "price": "economica",
+    "difficulty": "intermedia",
+    "health": "no saludable",
+    "diet_type": "vegetariano",
+    "allergens": ["gluten", "lactosa"],
+    "ingredients": [
+      { "name": "Harina de trigo", "quantity": 250, "unit": "g" },
+      { "name": "Agua", "quantity": 250, "unit": "ml" },
+      { "name": "Aceite de girasol para freír", "quantity": 500, "unit": "ml" },
+      { "name": "Chocolate negro para taza", "quantity": 150, "unit": "g" },
+      { "name": "Leche entera", "quantity": 400, "unit": "ml" },
+      { "name": "Sal", "quantity": 5, "unit": "g" }
+    ],
+    "instructions": [
+      "Pon a hervir el agua con la sal en un cazo. Cuando hierva, añade la harina de golpe y apaga el fuego.",
+      "Remueve enérgicamente con una cuchara de madera hasta que la masa se desprenda de las paredes.",
+      "Introduce la masa en una churrera o manga pastelera con boquilla de estrella para evitar bolsas de aire.",
+      "Forma los churros y fríelos en abundante aceite de girasol muy caliente hasta que se doren. Escurre en papel absorbente.",
+      "Para el chocolate: calienta la leche en un cazo, añade el chocolate troceado y remueve a fuego medio hasta que se disuelva por completo y espese."
+    ]
+  },
+  {
+    "id": 18,
+    "name": "Torrijas de Leche Tradicionales",
+    "meal_type": "desayuno",
+    "price": "economica",
+    "difficulty": "intermedia",
+    "health": "no saludable",
+    "diet_type": "vegetariano",
+    "allergens": ["gluten", "lactosa"],
+    "ingredients": [
+      { "name": "Pan del día anterior", "quantity": 1, "unit": "barra" },
+      { "name": "Leche entera", "quantity": 1, "unit": "litro" },
+      { "name": "Azúcar", "quantity": 150, "unit": "g" },
+      { "name": "Canela en rama", "quantity": 1, "unit": "unidad" },
+      { "name": "Limón (piel)", "quantity": 1, "unit": "unidad" },
+      { "name": "Huevo", "quantity": 3, "unit": "unidades" },
+      { "name": "Aceite de oliva suave para freír", "quantity": 300, "unit": "ml" },
+      { "name": "Canela en polvo", "quantity": 10, "unit": "g" }
+    ],
+    "instructions": [
+      "Infusiona la leche en un cazo con 100g de azúcar, la rama de canela y la piel de limón limpia. Lleva a ebullición, apaga el fuego y deja enfriar.",
+      "Corta la barra de pan en rodajas gruesas de unos 2 cm de grosor.",
+      "Coloca las rodajas de pan en una fuente y báñalas con la leche infusionada fría hasta que queden bien empapadas.",
+      "Pasa cada rebanada por huevo batido y fríelas en una sartén con abundante aceite de oliva suave muy caliente hasta dorar.",
+      "Escurre el exceso de aceite y reboza las torrijas inmediatamente en una mezcla de azúcar restante y canela en polvo."
+    ]
+  },
+  {
+    "id": 19,
+    "name": "Gazpacho Andaluz Tradicional",
+    "meal_type": "comida",
+    "price": "economica",
+    "difficulty": "facil",
+    "health": "saludable",
+    "diet_type": "vegano",
+    "allergens": ["gluten"],
+    "ingredients": [
+      { "name": "Tomates pera maduros", "quantity": 1000, "unit": "g" },
+      { "name": "Pimiento verde italiano", "quantity": 1, "unit": "unidad" },
+      { "name": "Pepino", "quantity": 0.5, "unit": "unidad" },
+      { "name": "Ajo", "quantity": 1, "unit": "diente" },
+      { "name": "Pan duro", "quantity": 50, "unit": "g" },
+      { "name": "Aceite de oliva virgen extra", "quantity": 50, "unit": "ml" },
+      { "name": "Vinagre de Jerez", "quantity": 25, "unit": "ml" },
+      { "name": "Sal", "quantity": 5, "unit": "g" }
+    ],
+    "instructions": [
+      "Lava bien los tomates y el pimiento. Pela el pepino y el diente de ajo.",
+      "Trocea todos los ingredientes y colócalos en el vaso de la batidora junto con el pan duro previamente remojado en agua.",
+      "Tritura todo a máxima potencia hasta conseguir una crema muy fina y homogénea.",
+      "Añade el vinagre de Jerez, la sal y, sin dejar de batir, vierte el aceite de oliva poco a poco para que emulsione.",
+      "Pasa el gazpacho por un colador fino o chino para retirar cualquier resto de pieles o pepitas.",
+      "Reserva en la nevera al menos 2 horas y sirve bien frío."
+    ]
+  },
+  {
+    "id": 20,
+    "name": "Salmorejo Cordobés Cremoso",
+    "meal_type": "cena",
+    "price": "economica",
+    "difficulty": "facil",
+    "health": "saludable",
+    "diet_type": "omnivoro",
+    "allergens": ["gluten"],
+    "ingredients": [
+      { "name": "Tomates pera maduros", "quantity": 1000, "unit": "g" },
+      { "name": "Pan de hogaza duro", "quantity": 200, "unit": "g" },
+      { "name": "Aceite de oliva virgen extra", "quantity": 100, "unit": "ml" },
+      { "name": "Ajo", "quantity": 1, "unit": "diente" },
+      { "name": "Sal", "quantity": 5, "unit": "g" },
+      { "name": "Jamón ibérico en taquitos", "quantity": 50, "unit": "g" },
+      { "name": "Huevo cocido", "quantity": 1, "unit": "unidad" }
+    ],
+    "instructions": [
+      "Lava y trocea los tomates. Tritúralos solos en la batidora hasta obtener un puré líquido.",
+      "Pasa el tomate triturado por un colador fino para quitar semillas y pieles.",
+      "Introduce el pan troceado en el tomate líquido y déjalo reposar 10 minutos para que se ablande.",
+      "Añade el ajo pelado y triturado y una pizca de sal. Tritura todo muy bien hasta obtener una pasta densa.",
+      "Con la batidora en marcha a velocidad media, ve vertiendo el aceite de oliva virgen extra poco a poco para lograr una emulsión espesa y cremosa.",
+      "Sirve en cuencos decorando con el huevo cocido picado y los taquitos de jamón ibérico."
+    ]
+  },
+  {
+    "id": 21,
+    "name": "Lentejas a la Riojana con Chorizo",
+    "meal_type": "comida",
+    "price": "economica",
+    "difficulty": "facil",
+    "health": "saludable",
+    "diet_type": "omnivoro",
+    "allergens": [],
+    "ingredients": [
+      { "name": "Lentejas pardinas", "quantity": 250, "unit": "g" },
+      { "name": "Chorizo fresco", "quantity": 100, "unit": "g" },
+      { "name": "Patata", "quantity": 1, "unit": "unidad" },
+      { "name": "Zanahoria", "quantity": 1, "unit": "unidad" },
+      { "name": "Cebolla", "quantity": 0.5, "unit": "unidad" },
+      { "name": "Pimiento verde", "quantity": 0.5, "unit": "unidad" },
+      { "name": "Ajo", "quantity": 2, "unit": "dientes" },
+      { "name": "Pimentón de la Vera", "quantity": 5, "unit": "g" },
+      { "name": "Laurel", "quantity": 1, "unit": "hoja" },
+      { "name": "Aceite de oliva", "quantity": 20, "unit": "ml" },
+      { "name": "Sal", "quantity": 4, "unit": "g" }
+    ],
+    "instructions": [
+      "En una olla con un chorrito de aceite de oliva, sofríe el ajo picado, la cebolla y el pimiento cortados muy finos.",
+      "Añade la zanahoria en rodajas y el chorizo cortado en rodajas gruesas. Rehoga un par de minutos.",
+      "Introduce la patata pelada y cascada en trozos pequeños.",
+      "Incorpora las lentejas limpias (no necesitan remojo previo si son pardinas), la hoja de laurel y el pimentón dulce. Remueve rápidamente.",
+      "Cubre todo con agua fría (unos dos dedos por encima del nivel de las lentejas).",
+      "Pon a fuego fuerte hasta que hierva, luego baja a fuego suave, tapa la olla y cocina unos 40-45 minutos. Sazona al gusto al final."
+    ]
+  },
+  {
+    "id": 22,
+    "name": "Pisto Manchego con Huevo",
+    "meal_type": "cena",
+    "price": "economica",
+    "difficulty": "facil",
+    "health": "saludable",
+    "diet_type": "vegetariano",
+    "allergens": [],
+    "ingredients": [
+      { "name": "Calabacín", "quantity": 300, "unit": "g" },
+      { "name": "Berenjena", "quantity": 200, "unit": "g" },
+      { "name": "Pimiento verde italiano", "quantity": 1, "unit": "unidad" },
+      { "name": "Pimiento rojo", "quantity": 0.5, "unit": "unidad" },
+      { "name": "Cebolla", "quantity": 1, "unit": "unidad" },
+      { "name": "Tomate triturado", "quantity": 400, "unit": "g" },
+      { "name": "Huevo", "quantity": 2, "unit": "unidades" },
+      { "name": "Aceite de oliva", "quantity": 30, "unit": "ml" },
+      { "name": "Sal", "quantity": 5, "unit": "g" }
+    ],
+    "instructions": [
+      "Pica finamente la cebolla y los pimientos rojo y verde. Corta el calabacín y la berenjena en dados de 1 cm.",
+      "En una sartén grande con aceite de oliva, sofríe la cebolla y los pimientos con sal hasta que estén blandos.",
+      "Añade la berenjena y el calabacín, y saltea a fuego medio durante 10 minutos.",
+      "Vierte el tomate triturado y deja cocinar todo a fuego lento durante 20 minutos removiendo de vez en cuando.",
+      "Haz dos huecos en el pisto, casca los huevos en ellos, tapa la sartén y deja cuajar a fuego suave unos 4-5 minutos hasta que la clara esté blanca."
+    ]
+  },
+  {
+    "id": 23,
+    "name": "Marmitako de Atún del Cantábrico",
+    "meal_type": "comida",
+    "price": "economica",
+    "difficulty": "intermedia",
+    "health": "saludable",
+    "diet_type": "pescetariano",
+    "allergens": ["pescado"],
+    "ingredients": [
+      { "name": "Atún fresco limpio", "quantity": 300, "unit": "g" },
+      { "name": "Patatas", "quantity": 500, "unit": "g" },
+      { "name": "Cebolla", "quantity": 1, "unit": "unidad" },
+      { "name": "Pimiento verde italiano", "quantity": 1, "unit": "unidad" },
+      { "name": "Carne de pimiento choricero", "quantity": 15, "unit": "g" },
+      { "name": "Ajo", "quantity": 2, "unit": "dientes" },
+      { "name": "Caldo de pescado", "quantity": 500, "unit": "ml" },
+      { "name": "Vino blanco", "quantity": 50, "unit": "ml" },
+      { "name": "Aceite de oliva", "quantity": 30, "unit": "ml" },
+      { "name": "Sal", "quantity": 4, "unit": "g" }
+    ],
+    "instructions": [
+      "Sofreír la cebolla, el pimiento verde y el ajo picados finamente en una cazuela con aceite de oliva.",
+      "Casca las patatas con el cuchillo (para que suelten almidón y espesen la salsa) y añádelas al sofrito.",
+      "Añade la pulpa de pimiento choricero, el vino blanco y remueve durante dos minutos.",
+      "Cubre las patatas con el caldo de pescado caliente y una pizca de sal. Cocina a fuego lento durante 25 minutos hasta que estén tiernas.",
+      "Corta el atún en dados medianos limpios. Añádelos a la cazuela, apaga el fuego inmediatamente y tapa la olla.",
+      "Deja reposar 5 minutos. El atún se cocinará en su punto exacto (tierno y jugoso) solo con el calor residual."
+    ]
+  },
+  {
+    "id": 24,
+    "name": "Carrilleras de Cerdo al Vino Tinto",
+    "meal_type": "comida",
+    "price": "cara",
+    "difficulty": "intermedia",
+    "health": "saludable",
+    "diet_type": "omnivoro",
+    "allergens": ["gluten"],
+    "ingredients": [
+      { "name": "Carrilleras de cerdo", "quantity": 500, "unit": "g" },
+      { "name": "Vino tinto de calidad", "quantity": 300, "unit": "ml" },
+      { "name": "Cebolla", "quantity": 1, "unit": "unidad" },
+      { "name": "Zanahoria", "quantity": 2, "unit": "unidades" },
+      { "name": "Puerro", "quantity": 1, "unit": "unidad" },
+      { "name": "Caldo de carne", "quantity": 250, "unit": "ml" },
+      { "name": "Harina de trigo", "quantity": 30, "unit": "g" },
+      { "name": "Aceite de oliva", "quantity": 40, "unit": "ml" },
+      { "name": "Sal", "quantity": 5, "unit": "g" },
+      { "name": "Pimienta negra", "quantity": 2, "unit": "g" }
+    ],
+    "instructions": [
+      "Limpia y salpimentar las carrilleras. Pásalas ligeramente por harina sacudiendo el exceso.",
+      "En una olla rápida o tradicional con aceite de oliva, séllalas a fuego fuerte hasta que se doren y resérvalas.",
+      "En el mismo aceite, sofríe la cebolla, puerro y zanahorias cortadas en trozos medianos unos 10 minutos.",
+      "Vuelve a introducir la carne, vierte el vino tinto y deja reducir el alcohol a fuego fuerte durante 5 minutos.",
+      "Añade el caldo de carne. Tapa y cocina (40 minutos en olla a presión o 2 horas a fuego lento tradicional).",
+      "Saca la carne tierna de la olla. Tritura la salsa con la batidora para que quede muy fina y reduce si es necesario.",
+      "Devuelve las carrilleras a la salsa caliente y sirve acompañadas de puré de patata."
+    ]
+  },
+  {
+    "id": 25,
+    "name": "Fabada Asturiana Tradicional",
+    "meal_type": "comida",
+    "price": "cara",
+    "difficulty": "intermedia",
+    "health": "saludable",
+    "diet_type": "omnivoro",
+    "allergens": [],
+    "ingredients": [
+      { "name": "Fabes asturianas", "quantity": 300, "unit": "g" },
+      { "name": "Chorizo asturiano", "quantity": 1, "unit": "unidad" },
+      { "name": "Morcilla asturiana", "quantity": 1, "unit": "unidad" },
+      { "name": "Tocino veteado", "quantity": 100, "unit": "g" },
+      { "name": "Lacón curado", "quantity": 100, "unit": "g" },
+      { "name": "Ajo", "quantity": 2, "unit": "dientes" },
+      { "name": "Azafrán en hebra", "quantity": 0.2, "unit": "g" },
+      { "name": "Laurel", "quantity": 1, "unit": "hoja" }
+    ],
+    "instructions": [
+      "Pon las fabes a remojo en agua fría la noche anterior (mínimo 12 horas). Remoja el lacón aparte en agua templada.",
+      "Escurre las fabes y colócalas en una cazuela ancha. Añade el chorizo, la morcilla, el tocino y el lacón (el compango).",
+      "Cubre todo con agua fría hasta que sobrepase un par de dedos las alubias. Añade los dientes de ajo enteros y el laurel.",
+      "Lueva a ebullición fuerte espumando las impurezas de la superficie.",
+      "Al comenzar a hervir, añade un chorro de agua fría ('asustar' las fabes) para romper el hervor. Repite esto una vez más.",
+      "Tapa y cocina a fuego muy lento durante 2 a 3 horas sin remover con cuchara (sino agitando la cazuela con las asas para no romper las fabes).",
+      "Disuelve el azafrán en un poco de caldo caliente y añádelo la última media hora. Rectifica de sal al final."
+    ]
+  },
+  {
+    "id": 26,
+    "name": "Cocido Madrileño Completo",
+    "meal_type": "comida",
+    "price": "cara",
+    "difficulty": "dificil",
+    "health": "saludable",
+    "diet_type": "omnivoro",
+    "allergens": ["gluten"],
+    "ingredients": [
+      { "name": "Garbanzos castellanos", "quantity": 250, "unit": "g" },
+      { "name": "Morcillo de ternera", "quantity": 300, "unit": "g" },
+      { "name": "Chorizo dulce", "quantity": 1, "unit": "unidad" },
+      { "name": "Morcilla de cebolla", "quantity": 1, "unit": "unidad" },
+      { "name": "Tocino blanco salado", "quantity": 100, "unit": "g" },
+      { "name": "Hueso de jamón", "quantity": 1, "unit": "unidad" },
+      { "name": "Pechuga de pollo", "quantity": 150, "unit": "g" },
+      { "name": "Patatas medianas", "quantity": 2, "unit": "unidades" },
+      { "name": "Zanahorias", "quantity": 2, "unit": "unidades" },
+      { "name": "Repollo", "quantity": 200, "unit": "g" },
+      { "name": "Fideos para sopa", "quantity": 80, "unit": "g" },
+      { "name": "Sal", "quantity": 6, "unit": "g" }
+    ],
+    "instructions": [
+      "Pon a remojo los garbanzos en agua templada con sal la noche anterior.",
+      "En una olla grande, pon el morcillo, el tocino, los huesos y el pollo con abundante agua fría. Lleva a ebullición y retira toda la espuma.",
+      "Cuando hierva, añade los garbanzos escurridos. Tapa y cocina a fuego lento durante 2 horas.",
+      "Introduce el chorizo, las patatas peladas y las zanahorias limpias. Cocina otros 30 minutos.",
+      "En una olla aparte, cuece el repollo picado junto con la morcilla para que no tiña el caldo principal.",
+      "Cuela el caldo del cocido a otra cazuela, añade los fideos finos y cuece durante 3 minutos para hacer la sopa.",
+      "Sirve en tres vuelcos: primero la sopa de fideos caliente; segundo los garbanzos, patatas y repollo salteado; tercero las carnes trinchadas."
+    ]
+  },
+  {
+    "id": 27,
+    "name": "Croquetas de Jamón Ibérico Cremosas",
+    "meal_type": "cena",
+    "price": "economica",
+    "difficulty": "intermedia",
+    "health": "no saludable",
+    "diet_type": "omnivoro",
+    "allergens": ["gluten", "lactosa"],
+    "ingredients": [
+      { "name": "Jamón ibérico picado", "quantity": 120, "unit": "g" },
+      { "name": "Harina de trigo", "quantity": 90, "unit": "g" },
+      { "name": "Leche entera", "quantity": 800, "unit": "ml" },
+      { "name": "Mantequilla", "quantity": 90, "unit": "g" },
+      { "name": "Cebolla mediana", "quantity": 0.5, "unit": "unidad" },
+      { "name": "Huevo", "quantity": 2, "unit": "unidades" },
+      { "name": "Pan rallado", "quantity": 150, "unit": "g" },
+      { "name": "Aceite de oliva para freír", "quantity": 300, "unit": "ml" },
+      { "name": "Nuez moscada en polvo", "quantity": 1, "unit": "g" }
+    ],
+    "instructions": [
+      "Pica la cebolla muy fina y dórala en una sartén con la mantequilla.",
+      "Añade el jamón picado y dale un par de vueltas. Incorpora la harina y remueve 2 minutos para que se tueste un poco y no sepa cruda.",
+      "Ve vertiendo la leche tibia poco a poco sin dejar de remover con unas varillas para que no salgan grumos.",
+      "Añade nuez moscada y una pizca de sal (cuidado con el jamón). Cocina a fuego lento durante 15 minutos removiendo constantemente hasta espesar.",
+      "Vierte la bechamel en una fuente engrasada, cúbrela con film transparente tocando la superficie y déjala enfriar en la nevera unas 4 horas.",
+      "Forma las croquetas, pásalas por huevo batido y después por pan rallado. Fríelas en abundante aceite bien caliente hasta que estén doradas y crujientes."
+    ]
+  },
+  {
+    "id": 28,
+    "name": "Gambas al Ajillo Clásicas",
+    "meal_type": "cena",
+    "price": "cara",
+    "difficulty": "facil",
+    "health": "saludable",
+    "diet_type": "pescetariano",
+    "allergens": ["marisco"],
+    "ingredients": [
+      { "name": "Gambas peladas frescas", "quantity": 300, "unit": "g" },
+      { "name": "Dientes de ajo", "quantity": 4, "unit": "unidades" },
+      { "name": "Guindilla seca", "quantity": 1, "unit": "unidad" },
+      { "name": "Aceite de oliva virgen extra", "quantity": 60, "unit": "ml" },
+      { "name": "Perejil fresco picado", "quantity": 5, "unit": "g" },
+      { "name": "Sal", "quantity": 2, "unit": "g" }
+    ],
+    "instructions": [
+      "Limpia las gambas peladas retirando el hilo intestinal si lo tuvieran y sécalas bien. Sazónalas con sal.",
+      "Lamina los dientes de ajo y corta la guindilla en rodajas pequeñas.",
+      "En una cazuela de barro (preferiblemente) con el aceite de oliva, echa los ajos y la guindilla en frío.",
+      "Llévalo al fuego lento. Deja que los ajos comiencen a dorarse despacio e impregnen el aceite de sabor.",
+      "Sube el fuego a medio-alto, añade las gambas de golpe y cocínalas moviendo la cazuela unos 2 minutos hasta que cambien de color.",
+      "Espolvorea el perejil picado fresco y retira inmediatamente del fuego. Sirve burbujeando en la misma cazuela."
+    ]
+  },
+  {
+    "id": 29,
+    "name": "Pulpo a la Gallega (Feira)",
+    "meal_type": "comida",
+    "price": "cara",
+    "difficulty": "intermedia",
+    "health": "saludable",
+    "diet_type": "pescetariano",
+    "allergens": ["pescado"],
+    "ingredients": [
+      { "name": "Pulpo cocido (patas)", "quantity": 400, "unit": "g" },
+      { "name": "Patatas medianas", "quantity": 3, "unit": "unidades" },
+      { "name": "Aceite de oliva virgen extra", "quantity": 30, "unit": "ml" },
+      { "name": "Pimentón dulce", "quantity": 5, "unit": "g" },
+      { "name": "Pimentón picante", "quantity": 2, "unit": "g" },
+      { "name": "Sal gruesa", "quantity": 5, "unit": "g" }
+    ],
+    "instructions": [
+      "Cuece las patatas peladas y cortadas en rodajas gruesas de 1.5 cm (cachelos) en abundante agua con sal durante 15 minutos.",
+      "Calienta las patas de pulpo cocidas pasándolas por vapor o sumergiéndolas brevemente en agua caliente unos minutos.",
+      "Coloca una cama de patatas cocidas calientes en un plato de madera tradicional.",
+      "Corta el pulpo tibio con unas tijeras en rodajas finas de 1 cm sobre la cama de patatas.",
+      "Riega generosamente todo el plato con aceite de oliva virgen extra de calidad.",
+      "Espolvorea una mezcla de pimentón dulce y picante al gusto, y termina con escamas de sal gruesa por encima."
+    ]
+  },
+  {
+    "id": 30,
+    "name": "Patatas Bravas Crujientes",
+    "meal_type": "cena",
+    "price": "economica",
+    "difficulty": "intermedia",
+    "health": "no saludable",
+    "diet_type": "vegetariano",
+    "allergens": ["gluten"],
+    "ingredients": [
+      { "name": "Patatas para freír", "quantity": 500, "unit": "g" },
+      { "name": "Caldo de pollo o verduras", "quantity": 200, "unit": "ml" },
+      { "name": "Pimentón dulce", "quantity": 5, "unit": "g" },
+      { "name": "Pimentón picante", "quantity": 5, "unit": "g" },
+      { "name": "Harina de trigo", "quantity": 15, "unit": "g" },
+      { "name": "Aceite de oliva", "quantity": 250, "unit": "ml" },
+      { "name": "Ajo", "quantity": 1, "unit": "diente" },
+      { "name": "Sal", "quantity": 3, "unit": "g" }
+    ],
+    "instructions": [
+      "Para la salsa brava: en un cazo calienta 20 ml de aceite de oliva, añade el diente de ajo picado y dóralo.",
+      "Añade la harina, el pimentón dulce y picante, remueve rápidamente para que no se queme durante 1 minuto.",
+      "Ve vertiendo el caldo caliente poco a poco y remueve con varillas hasta que espese y hierva unos 10 minutos. Tritura y cuela la salsa.",
+      "Pela las patatas y trocéalas cortándolas en dados irregulares. Lava bien para retirar el almidón y sécalas.",
+      "Confitar las patatas friéndolas a fuego medio (140°C) unos 10 minutos para cocerlas por dentro. Retíralas.",
+      "Sube el fuego al máximo (180°C) y fríelas de nuevo 2 minutos para que queden muy crujientes y doradas por fuera. Añade sal y báñalas con la salsa brava."
+    ]
+  },
+  {
+    "id": 31,
+    "name": "Bacalao al Pil Pil Tradicional",
+    "meal_type": "comida",
+    "price": "cara",
+    "difficulty": "dificil",
+    "health": "saludable",
+    "diet_type": "pescetariano",
+    "allergens": ["pescado"],
+    "ingredients": [
+      { "name": "Lomos de bacalao desalado", "quantity": 400, "unit": "g" },
+      { "name": "Aceite de oliva virgen extra", "quantity": 150, "unit": "ml" },
+      { "name": "Dientes de ajo", "quantity": 4, "unit": "unidades" },
+      { "name": "Guindilla seca", "quantity": 1, "unit": "unidad" }
+    ],
+    "instructions": [
+      "Pela y lamina los dientes de ajo. En una cazuela de barro, calienta el aceite de oliva y dora los ajos y la guindilla cortada en aros.",
+      "Retira los ajos y la guindilla una vez dorados y resérvalos.",
+      "En el mismo aceite templado (debe bajar la temperatura), coloca los lomos de bacalao con la piel hacia arriba. Cocina a fuego mínimo 4 minutos, dales la vuelta con cuidado y cocina otros 4 minutos.",
+      "Saca los lomos de bacalao a un plato. Verás que han soltado gotas de gelatina blanca en el aceite.",
+      "Espera a que el aceite esté templado (not caliente) y remueve en círculos con un colador de alambre o moviendo suavemente la cazuela para ligar la gelatina con el aceite hasta conseguir una salsa espesa y amarilla (Pil Pil).",
+      "Devuelve el bacalao, decora con los ajos y la guindilla reservados, y calienta suavemente."
+    ]
+  },
+  {
+    "id": 32,
+    "name": "Merluza a la Vasca con Almejas",
+    "meal_type": "cena",
+    "price": "cara",
+    "difficulty": "intermedia",
+    "health": "saludable",
+    "diet_type": "pescetariano",
+    "allergens": ["pescado", "marisco", "gluten"],
+    "ingredients": [
+      { "name": "Lomos de merluza", "quantity": 400, "unit": "g" },
+      { "name": "Almejas frescas", "quantity": 150, "unit": "g" },
+      { "name": "Caldo de pescado", "quantity": 250, "unit": "ml" },
+      { "name": "Vino blanco", "quantity": 50, "unit": "ml" },
+      { "name": "Harina de trigo", "quantity": 15, "unit": "g" },
+      { "name": "Guisantes cocidos", "quantity": 50, "unit": "g" },
+      { "name": "Yemas de espárrago blanco", "quantity": 4, "unit": "unidades" },
+      { "name": "Dientes de ajo", "quantity": 2, "unit": "dientes" },
+      { "name": "Perejil fresco picado", "quantity": 10, "unit": "g" },
+      { "name": "Aceite de oliva", "quantity": 30, "unit": "ml" },
+      { "name": "Sal", "quantity": 3, "unit": "g" }
+    ],
+    "instructions": [
+      "Pon las almejas en remojo en agua fría con sal una hora antes para que suelten la arena.",
+      "Pica finamente los ajos y sofríelos en una cazuela ancha con aceite de oliva sin que cojan color.",
+      "Sazona la merluza, pásala ligeramente por harina e introdúcela en la cazuela.",
+      "Vierte el vino blanco y deja reducir el alcohol a fuego medio 2 minutos.",
+      "Añade el caldo de pescado caliente y el perejil fresco picado. Cocina a fuego lento moviendo la cazuela con movimientos de vaivén para ligar la salsa.",
+      "Añade las almejas limpias, los guisantes y las yemas de espárragos. Tapa y cocina 3-4 minutos hasta que las almejas se abran y sirve caliente."
+    ]
+  },
+  {
+    "id": 33,
+    "name": "Pimientos del Piquillo Rellenos de Bacalao",
+    "meal_type": "cena",
+    "price": "economica",
+    "difficulty": "intermedia",
+    "health": "saludable",
+    "diet_type": "pescetariano",
+    "allergens": ["pescado", "gluten", "lactosa"],
+    "ingredients": [
+      { "name": "Pimientos del piquillo enteros", "quantity": 12, "unit": "unidades" },
+      { "name": "Bacalao desalado desmigado", "quantity": 250, "unit": "g" },
+      { "name": "Cebolla grande", "quantity": 1, "unit": "unidad" },
+      { "name": "Harina de trigo", "quantity": 40, "unit": "g" },
+      { "name": "Leche entera", "quantity": 350, "unit": "ml" },
+      { "name": "Nata líquida para cocinar", "quantity": 150, "unit": "ml" },
+      { "name": "Ajo", "quantity": 2, "unit": "dientes" },
+      { "name": "Aceite de oliva", "quantity": 30, "unit": "ml" },
+      { "name": "Sal", "quantity": 3, "unit": "g" }
+    ],
+    "instructions": [
+      "Para el relleno: pica media cebolla y un ajo. Sofríelos con aceite, añade el bacalao desmigado y saltea 3 minutos.",
+      "Añade la harina, revuelve bien, y ve incorporando la leche caliente poco a poco sin dejar de remover hasta obtener una bechamel muy espesa y suave. Rectifica de sal y deja enfriar.",
+      "Rellena con cuidado los pimientos del piquillo con la bechamel fría usando una cucharilla o manga pastelera.",
+      "Para la salsa: sofríe la otra media cebolla y el otro ajo. Añade dos pimientos del piquillo que se hayan roto, vierte la nata, sal y cocina 5 minutos.",
+      "Tritura la salsa muy fina con la batidora, pásala a una cazuela, coloca los pimientos rellenos encima y caliéntalos a fuego suave 10 minutos antes de servir."
+    ]
   }
 ]

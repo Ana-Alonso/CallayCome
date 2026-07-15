@@ -2,6 +2,7 @@ create table if not exists public.family_units (
   id uuid default gen_random_uuid() primary key,
   name text not null,
   invite_code text unique not null,
+  start_date date,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

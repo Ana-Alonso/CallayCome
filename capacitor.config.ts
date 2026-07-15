@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.cocina.abuela',
-  appName: 'La Cocina de la Abuela',
+  appId: 'com.callaycome.app',
+  appName: 'Calla y Come',
   webDir: 'dist'
 };
 

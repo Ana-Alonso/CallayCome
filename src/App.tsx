@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+import { App as CapApp } from '@capacitor/app';
 import {
   Calendar,
   ChefHat,
@@ -13,6 +15,7 @@ import { Box } from './components/common/Box';
 import { Dialogo } from './components/common/Dialogo';
 import { ModalFiltros } from './components/common/ModalFiltros';
 import { Planner } from './components/planner/Planner';
+import { ModoNevera } from './components/nevera/ModoNevera';
 import { Pantry } from './components/pantry/Pantry';
 import { ShoppingList } from './components/shopping/ShoppingList';
 import { AddRecipe } from './components/recipes/AddRecipe';
@@ -88,8 +91,66 @@ export const App = () => {
     handle_switch_family,
     handle_leave_family,
     handle_approve_suggestion,
-    handle_reject_suggestion
+    handle_reject_suggestion,
+    handle_vote_suggestion,
+    handle_transfer_role,
+    get_family_members,
+    get_family_complaints,
+    start_date,
+    handle_change_start_date,
+    handle_cook_day,
+    handle_add_custom_shopping_item
   } = use_app_state();
+
+  const [mostrar_modo_nevera, set_mostrar_modo_nevera] = useState(false);
+  const [lavaplatos, set_lavaplatos] = useState<string | null>(null);
+  const [max_complaints, set_max_complaints] = useState<number>(0);
+
+  useEffect(() => {
+    const setupDeepLink = async () => {
+      try {
+        CapApp.addListener('appUrlOpen', (event: any) => {
+          if (event.url && (event.url.includes('nevera') || event.url.includes('nfc'))) {
+            set_mostrar_modo_nevera(true);
+          }
+        });
+      } catch (e) {
+        console.warn("CapApp listener not supported:", e);
+      }
+    };
+    setupDeepLink();
+  }, []);
+
+  useEffect(() => {
+    if (profile?.active_family_id) {
+      Promise.all([
+        get_family_members(profile.active_family_id),
+        get_family_complaints(profile.active_family_id)
+      ]).then(([members, complaints]) => {
+        if (members && members.length > 0) {
+          let max_count = -1;
+          let whiner: any = null;
+          members.forEach(m => {
+            const count = complaints[m.user_id] || 0;
+            if (count > max_count) {
+              max_count = count;
+              whiner = m;
+            }
+          });
+          if (whiner && max_count > 0) {
+            set_lavaplatos(whiner.display_name);
+            set_max_complaints(max_count);
+          } else {
+            set_lavaplatos(null);
+            set_max_complaints(0);
+          }
+        }
+      }).catch(console.error);
+    } else {
+      set_lavaplatos(null);
+      set_max_complaints(0);
+    }
+  }, [profile?.active_family_id, suggestions]);
 
   const handle_filter_modal_open = (): void => {
     set_is_filter_modal_open(true);
@@ -120,7 +181,7 @@ export const App = () => {
         <PageContainer style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
           <AppLogo style={{ flexDirection: 'column', gap: 16, marginBottom: 24 }}>
             <LogoIcon style={{ fontSize: 64 }}>🍳</LogoIcon>
-            <AppTitle>La Cocina de La Abuela</AppTitle>
+            <AppTitle>Calla y Come</AppTitle>
           </AppLogo>
           <TextMuted>Cargando sesión...</TextMuted>
           <Spacer height={20} />
@@ -163,7 +224,7 @@ export const App = () => {
         <HeaderContainer>
           <AppLogo>
             <LogoIcon>🍳</LogoIcon>
-            <AppTitle>La Cocina de La Abuela</AppTitle>
+            <AppTitle>Calla y Come</AppTitle>
           </AppLogo>
         </HeaderContainer>
 
@@ -190,7 +251,7 @@ export const App = () => {
       <HeaderContainer>
         <AppLogo>
           <LogoIcon>🍳</LogoIcon>
-          <AppTitle>La Cocina de La Abuela</AppTitle>
+          <AppTitle>Calla y Come</AppTitle>
         </AppLogo>
       </HeaderContainer>
 
@@ -246,6 +307,12 @@ export const App = () => {
           on_move_slot={handle_move_meal_slot}
           current_role={current_role}
           pending_suggestions={suggestions.length}
+          start_date={start_date}
+          on_change_start_date={handle_change_start_date}
+          on_cook={handle_cook_day}
+          get_family_members={get_family_members}
+          get_family_complaints={get_family_complaints}
+          on_open_nevera={() => set_mostrar_modo_nevera(true)}
         />
       )}
 
@@ -262,6 +329,7 @@ export const App = () => {
           shopping_items={shopping_items}
           on_recalculate={handle_recalculate_shopping}
           on_toggle={handle_toggle_purchase}
+          on_add_custom={handle_add_custom_shopping_item}
         />
       )}
 
@@ -285,6 +353,10 @@ export const App = () => {
           handle_leave_family={handle_leave_family}
           handle_approve_suggestion={handle_approve_suggestion}
           handle_reject_suggestion={handle_reject_suggestion}
+          handle_vote_suggestion={handle_vote_suggestion}
+          handle_transfer_role={handle_transfer_role}
+          get_family_members={get_family_members}
+          get_family_complaints={get_family_complaints}
         />
       )}
 
@@ -362,6 +434,19 @@ export const App = () => {
           </>
         )}
       </Dialogo>
+
+      {mostrar_modo_nevera && (
+        <ModoNevera
+          on_close={() => set_mostrar_modo_nevera(false)}
+          meal_plan={meal_plan}
+          recipes={recipes}
+          shopping_items={shopping_items}
+          handle_toggle_purchase={handle_toggle_purchase}
+          lavaplatos={lavaplatos}
+          max_complaints={max_complaints}
+          start_date={start_date}
+        />
+      )}
     </AppContainer>
   );
 };

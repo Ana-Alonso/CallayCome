@@ -30,6 +30,7 @@ export interface ShoppingItem {
   quantity: number;
   unit: string;
   purchased: boolean;
+  manual?: boolean;
 }
 
 export interface MealPlanDay {
@@ -88,4 +89,10 @@ export interface RecipeSuggestion {
   likes_count?: number;
   dislikes_count?: number;
   my_vote?: 'like' | 'dislike' | null;
+}
+
+export interface CookRecipeConfig {
+  recipe_id: number;
+  portions: number;
+  leftovers: number;
 }

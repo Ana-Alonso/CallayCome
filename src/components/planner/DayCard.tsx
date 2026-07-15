@@ -12,6 +12,9 @@ interface DayCardProps {
   on_remove_slot: (type: 'desayuno' | 'comida' | 'cena', slot_index: number) => void;
   on_move_slot: (type: 'desayuno' | 'comida' | 'cena', slot_index: number, direction: 'up' | 'down') => void;
   can_add_slots: boolean;
+  destacado?: boolean;
+  on_cook?: () => void;
+  can_cook?: boolean;
 }
 
 export const DayCard = ({
@@ -22,7 +25,10 @@ export const DayCard = ({
   on_add_slot,
   on_remove_slot,
   on_move_slot,
-  can_add_slots
+  can_add_slots,
+  destacado,
+  on_cook,
+  can_cook
 }: DayCardProps) => {
   const get_recipe_name = (id: number | null): string | null => {
     if (id === null) {
@@ -33,11 +39,25 @@ export const DayCard = ({
   };
 
   return (
-    <DayCardContainer>
+    <DayCardContainer destacado={destacado}>
       <DayCardHeader>
         <DayTitle>Día {plan_dia.day}</DayTitle>
-        <DayDate>Menú del día</DayDate>
+        <DayDate style={{ color: destacado ? '#4caf50' : undefined, fontWeight: destacado ? 'bold' : undefined }}>
+          {destacado ? '⭐ MENÚ DE HOY' : 'Menú del día'}
+        </DayDate>
       </DayCardHeader>
+
+      {destacado && can_cook && on_cook && (
+        <div style={{ padding: '0 16px 12px 16px' }}>
+          <Boton
+            texto="Marcar como Cocinado/Comido 🍽️"
+            color="success"
+            variante="contained"
+            clase_css="full-width btn-sm"
+            on_click={on_cook}
+          />
+        </div>
+      )}
 
       <DayMeals>
         {(['desayuno', 'comida', 'cena'] as const).map(type => (
