@@ -7,7 +7,6 @@ import type {
   FilterState, 
   ToastMessage,
   Profile,
-  FamilyUnit,
   FamilyMember,
   RecipeSuggestion
 } from '../types';
@@ -32,6 +31,7 @@ export const use_app_state = () => {
   const [profile, set_profile] = useState<Profile | null>(null);
   const [my_families, set_my_families] = useState<FamilyMember[]>([]);
   const [suggestions, set_suggestions] = useState<RecipeSuggestion[]>([]);
+  const [auth_loading, set_auth_loading] = useState<boolean>(true);
   
   const [is_filter_modal_open, set_is_filter_modal_open] = useState<boolean>(false);
   const [active_filters, set_filters] = useState<FilterState>({
@@ -160,9 +160,12 @@ export const use_app_state = () => {
         } else {
           load_local_data();
         }
+      } else {
+        load_local_data();
       }
     } catch (err) {
       console.error(err);
+      load_local_data();
     }
   };
 
@@ -294,40 +297,54 @@ export const use_app_state = () => {
     const is_configured = is_supabase_configured();
     set_supabase_connected(is_configured);
 
-    if (is_configured) {
-      load_recipes();
-      const supabase = get_supabase_client();
-      if (supabase) {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session) {
-            set_user(session.user);
-            load_user_profile(session.user.id);
-          } else {
-            load_local_data();
-          }
-        });
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-          if (session) {
-            set_user(session.user);
-            load_user_profile(session.user.id);
-          } else {
-            set_user(null);
-            set_profile(null);
-            set_my_families([]);
-            set_suggestions([]);
-            load_local_data();
-          }
-        });
-
-        return () => {
-          subscription.unsubscribe();
-        };
-      }
-    } else {
+    if (!is_configured) {
       load_local_data();
+      set_auth_loading(false);
+      return;
     }
-  }, [supabase_connected]);;
+
+    load_recipes();
+
+    const supabase = get_supabase_client();
+    if (!supabase) {
+      load_local_data();
+      set_auth_loading(false);
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        set_user(session.user);
+        load_user_profile(session.user.id).finally(() => {
+          set_auth_loading(false);
+        });
+      } else {
+        load_local_data();
+        set_auth_loading(false);
+      }
+    }).catch(() => {
+      load_local_data();
+      set_auth_loading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        set_user(session.user);
+        load_user_profile(session.user.id);
+      } else {
+        set_user(null);
+        set_profile(null);
+        set_my_families([]);
+        set_suggestions([]);
+        load_local_data();
+        set_auth_loading(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
 
 
@@ -408,34 +425,31 @@ export const use_app_state = () => {
       return;
     }
 
-    const updated_plan = meal_plan.map(day_plan => {
-      const get_best_candidate = (meal_type: 'desayuno' | 'comida' | 'cena'): number | null => {
-        const meal_candidates = available_recipes.filter(r => r.meal_type === meal_type);
-        if (meal_candidates.length === 0) {
-          const fallback_candidates = recipes.filter(r => r.meal_type === meal_type);
-          if (fallback_candidates.length === 0) {
-            return null;
-          }
-          return fallback_candidates[Math.floor(Math.random() * fallback_candidates.length)].id;
-        }
+    const base_plan: MealPlanDay[] = get_base_plan();
 
-        const sorted = [...meal_candidates].map(recipe => ({
-          recipe,
-          score: get_pantry_match_info(recipe).pct
-        })).sort((a, b) => b.score - a.score);
+    const get_best_candidate = (meal_type: 'desayuno' | 'comida' | 'cena'): number | null => {
+      const meal_candidates = available_recipes.filter(r => r.meal_type === meal_type);
+      if (meal_candidates.length === 0) {
+        const fallback_candidates = recipes.filter(r => r.meal_type === meal_type);
+        if (fallback_candidates.length === 0) return null;
+        return fallback_candidates[Math.floor(Math.random() * fallback_candidates.length)].id;
+      }
+      const sorted = [...meal_candidates].map(recipe => ({
+        recipe,
+        score: get_pantry_match_info(recipe).pct
+      })).sort((a, b) => b.score - a.score);
 
-        const top_slice = sorted.slice(0, Math.min(3, sorted.length));
-        const picked = top_slice[Math.floor(Math.random() * top_slice.length)];
-        return picked.recipe.id;
-      };
+      const top_slice = sorted.slice(0, Math.min(3, sorted.length));
+      const picked = top_slice[Math.floor(Math.random() * top_slice.length)];
+      return picked.recipe.id;
+    };
 
-      return {
-        day: day_plan.day,
-        desayuno: get_best_candidate('desayuno'),
-        comida: get_best_candidate('comida'),
-        cena: get_best_candidate('cena')
-      };
-    });
+    const updated_plan = base_plan.map(day_plan => ({
+      day: day_plan.day,
+      desayuno: get_best_candidate('desayuno'),
+      comida: get_best_candidate('comida'),
+      cena: get_best_candidate('cena')
+    }));
 
     set_meal_plan(updated_plan);
     trigger_push(
@@ -541,8 +555,13 @@ export const use_app_state = () => {
     calculate_missing_ingredients(meal_plan);
   };
 
+  const get_base_plan = (): MealPlanDay[] =>
+    meal_plan.length > 0
+      ? meal_plan
+      : Array.from({ length: 30 }, (_, i) => ({ day: i + 1, desayuno: null, comida: null, cena: null }));
+
   const handle_clear_plan = (): void => {
-    const cleared = meal_plan.map(d => ({ ...d, desayuno: null, comida: null, cena: null }));
+    const cleared = get_base_plan().map(d => ({ ...d, desayuno: null, comida: null, cena: null }));
     set_meal_plan(cleared);
     set_shopping_items([]);
     if (supabase_connected) {
@@ -726,12 +745,19 @@ export const use_app_state = () => {
   const handle_signup = async (email: string, pass: string): Promise<boolean> => {
     const supabase = get_supabase_client();
     if (!supabase) return false;
-    const { error } = await supabase.auth.signUp({ email, password: pass });
+    const { data, error } = await supabase.auth.signUp({ email, password: pass });
     if (error) {
       trigger_push("Error de Registro", error.message);
       return false;
     }
-    trigger_push("Registro exitoso", "Tu cuenta ha sido creada.");
+    if (data.session === null && data.user) {
+      trigger_push(
+        "Revisa tu correo 📧",
+        "Se ha enviado un enlace de confirmación. Si no llega, pide al administrador que desactive la confirmación de email en Supabase."
+      );
+      return false;
+    }
+    trigger_push("Registro exitoso 🎉", "Tu cuenta ha sido creada. ¡Bienvenido/a!");
     return true;
   };
 
@@ -742,15 +768,15 @@ export const use_app_state = () => {
     trigger_push("Sesión cerrada", "Has cerrado sesión.");
   };
 
-  const handle_create_family = async (name: string): Promise<void> => {
-    if (!user) return;
+  const handle_create_family = async (name: string): Promise<string | null> => {
+    if (!user) return null;
     if (my_families.length >= 2) {
       trigger_push("Límite alcanzado", "No puedes tener más de 2 unidades familiares.");
-      return;
+      return null;
     }
 
     const supabase = get_supabase_client();
-    if (!supabase) return;
+    if (!supabase) return null;
 
     try {
       const invite_code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -773,10 +799,11 @@ export const use_app_state = () => {
         .update({ active_family_id: family.id })
         .eq('id', user.id);
 
-      trigger_push("Familia Creada 🏠", `Creada la familia "${name}".`);
       await load_user_profile(user.id);
+      return invite_code;
     } catch (err: any) {
       trigger_push("Error", err.message || "No se pudo crear la familia.");
+      return null;
     }
   };
 
@@ -948,7 +975,7 @@ export const use_app_state = () => {
       return;
     }
 
-    const updated = meal_plan.map(d => {
+    const updated = get_base_plan().map(d => {
       if (d.day === day) {
         return { ...d, [type]: recipe_id };
       }
@@ -985,7 +1012,7 @@ export const use_app_state = () => {
       return;
     }
 
-    const updated = meal_plan.map(d => {
+    const updated = get_base_plan().map(d => {
       if (d.day === day) {
         return { ...d, [type]: null };
       }
@@ -1064,6 +1091,7 @@ export const use_app_state = () => {
     my_families,
     suggestions,
     current_role: get_current_role(),
+    auth_loading,
     is_filter_modal_open,
     set_is_filter_modal_open,
     active_filters,
