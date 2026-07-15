@@ -542,7 +542,7 @@ export const use_app_state = () => {
     await mark_family_notifications_as_read(rows.map(notification => notification.id));
   };
 
-  useEffect(() => {
+ useEffect(() => {
     if (!user?.id) {
       return;
     }
@@ -553,28 +553,29 @@ export const use_app_state = () => {
 
     load_pending_family_notifications(user.id).catch(console.error);
 
-    const channel = supabase
-      .channel(`family-notifications-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'family_notifications',
-          filter: `recipient_user_id=eq.${user.id}`
-        },
-        (payload: any) => {
-          const row = payload.new as { id?: number; title?: string; body?: string };
-          if (!row?.title || !row?.body) {
-            return;
-          }
-          trigger_push(row.title, row.body);
-          if (typeof row.id === 'number') {
-            mark_family_notifications_as_read([row.id]).catch(console.error);
-          }
+    const channel = supabase.channel(`family-notifications-${user.id}-${Date.now()}`);
+
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'family_notifications',
+        filter: `recipient_user_id=eq.${user.id}`
+      },
+      (payload: any) => {
+        const row = payload.new as { id?: number; title?: string; body?: string };
+        if (!row?.title || !row?.body) {
+          return;
         }
-      )
-      .subscribe();
+        trigger_push(row.title, row.body);
+        if (typeof row.id === 'number') {
+          mark_family_notifications_as_read([row.id]).catch(console.error);
+        }
+      }
+    );
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);
@@ -1498,6 +1499,55 @@ export const use_app_state = () => {
     trigger_push("Receta Guardada 👵", `Se ha añadido la receta "${new_recipe.name}" al recetario.`);
   };
 
+  const handle_vote_suggestion = async (suggestion_id: number, vote: 'like' | 'dislike'): Promise<void> => {
+    if (!user) return;
+    const supabase = get_supabase_client();
+    if (!supabase) return;
+
+    set_suggestions(prev_suggestions => prev_suggestions.map(s => {
+      if (s.id !== suggestion_id) return s;
+
+      let new_likes = s.likes_count || 0;
+      let new_dislikes = s.dislikes_count || 0;
+      const prev_vote = s.my_vote;
+
+      if (prev_vote === vote) return s; // Si pulsa el mismo, no hacemos nada
+
+      if (prev_vote === 'like') new_likes = Math.max(0, new_likes - 1);
+      if (prev_vote === 'dislike') new_dislikes = Math.max(0, new_dislikes - 1);
+
+      if (vote === 'like') new_likes++;
+      if (vote === 'dislike') new_dislikes++;
+
+      return { 
+        ...s, 
+        my_vote: vote, 
+        likes_count: new_likes, 
+        dislikes_count: new_dislikes 
+      };
+    }));
+
+    try {
+      const { error } = await supabase
+        .from('recipe_suggestion_votes')
+        .upsert({
+          suggestion_id,
+          user_id: user.id,
+          vote
+        }, { onConflict: 'suggestion_id, user_id' });
+
+      if (error) throw new Error(error.message);
+      
+    } catch (err: any) {
+      console.error(err);
+      trigger_push("Error", "No se pudo registrar tu voto.");
+      // En caso de error, recargamos los datos reales
+      if (profile?.active_family_id) {
+        await load_family_data(profile.active_family_id);
+      }
+    }
+  };
+
   return {
     active_tab,
     set_active_tab,
@@ -1546,6 +1596,8 @@ export const use_app_state = () => {
     handle_switch_family,
     handle_leave_family,
     handle_approve_suggestion,
-    handle_reject_suggestion
+    handle_reject_suggestion,
+    handle_suggest_recipe,
+    handle_vote_suggestion
   };
 };
