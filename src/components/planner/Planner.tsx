@@ -58,6 +58,11 @@ interface PlannerProps {
   get_family_members: (family_id: string) => Promise<any[]>;
   get_family_complaints: (family_id: string) => Promise<Record<string, number>>;
   on_open_nevera: () => void;
+  hide_breakfasts: boolean;
+  set_hide_breakfasts: (val: boolean) => void;
+  show_quejometro: boolean;
+  set_show_quejometro: (val: boolean) => void;
+  cooked_days: number[];
 }
 
 export const Planner = ({
@@ -79,6 +84,11 @@ export const Planner = ({
   get_family_members,
   get_family_complaints,
   on_open_nevera,
+  hide_breakfasts,
+  set_hide_breakfasts,
+  show_quejometro,
+  set_show_quejometro,
+  cooked_days,
 }: PlannerProps) => {
   const is_member = current_role === "miembro";
   const [mostrar_sugerencias, set_mostrar_sugerencias] = useState(false);
@@ -165,6 +175,14 @@ export const Planner = ({
       set_mostrar_panico(true);
     }
   };
+
+  useEffect(() => {
+    const handlePanicHotkey = () => {
+      handle_panic_click();
+    };
+    window.addEventListener('hotkey-panic', handlePanicHotkey);
+    return () => window.removeEventListener('hotkey-panic', handlePanicHotkey);
+  }, [recipes, pantry_items]);
 
   const parseLocalDate = (dateStr: string): Date => {
     const [year, month, day] = dateStr.split('-').map(Number);
@@ -275,6 +293,26 @@ export const Planner = ({
               />
             </label>
           </FlexRow>
+          <FlexRow style={{ gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
+              <input
+                type="checkbox"
+                checked={hide_breakfasts}
+                onChange={(e) => set_hide_breakfasts(e.target.checked)}
+                style={{ accentColor: '#2196f3', cursor: 'pointer' }}
+              />
+              <span>Ocultar desayunos</span>
+            </label>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
+              <input
+                type="checkbox"
+                checked={show_quejometro}
+                onChange={(e) => set_show_quejometro(e.target.checked)}
+                style={{ accentColor: '#2196f3', cursor: 'pointer' }}
+              />
+              <span>Mostrar quejímetro</span>
+            </label>
+          </FlexRow>
           {current_day && (
             <span style={{ fontSize: 14, color: '#4caf50', fontWeight: 'bold' }}>
               🟢 Hoy es el día {current_day} del plan
@@ -283,7 +321,7 @@ export const Planner = ({
         </FlexRow>
         
         {/* Dishwasher & NFC Info */}
-        {(lavaplatos || current_day) && (
+        {show_quejometro && (lavaplatos || current_day) && (
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -373,6 +411,8 @@ export const Planner = ({
             destacado={day_plan.day === current_day}
             on_cook={() => set_confirmar_cocinado_dia(day_plan.day)}
             can_cook={!is_member}
+            hide_breakfasts={hide_breakfasts}
+            cooked_days={cooked_days}
           />
         ))}
       </DaysList>

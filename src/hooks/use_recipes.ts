@@ -6,11 +6,13 @@ import { get_supabase_client } from '../services/supabase_client';
 interface UseRecipesParams {
   supabase_connected: boolean;
   trigger_push: (title: string, message: string) => void;
+  get_recipe_votes?: (recipeId: number) => number;
 }
 
 export const use_recipes = ({
   supabase_connected,
-  trigger_push
+  trigger_push,
+  get_recipe_votes
 }: UseRecipesParams) => {
   const [recipes, set_recipes] = useState<Recipe[]>(local_recipes as Recipe[]);
   const [recipe_search, set_recipe_search] = useState<string>('');
@@ -129,7 +131,7 @@ export const use_recipes = ({
   const get_selectable_recipes = (
     assigning_meal: { day: number; type: 'desayuno' | 'comida' | 'cena'; slot_index: number } | null,
     get_pantry_match_info: (recipe: Recipe) => { matches: number; total: number; pct: number }
-  ): Array<{ recipe: Recipe; match_info: { matches: number; total: number; pct: number } }> => {
+  ): Array<{ recipe: Recipe; match_info: { matches: number; total: number; pct: number }; votes: number }> => {
     if (!assigning_meal) return [];
     const type = assigning_meal.type;
     return recipes
@@ -137,9 +139,15 @@ export const use_recipes = ({
       .filter(r => r.name.toLowerCase().includes(recipe_search.toLowerCase()))
       .map(recipe => {
         const match_info = get_pantry_match_info(recipe);
-        return { recipe, match_info };
+        const votes = get_recipe_votes ? get_recipe_votes(recipe.id) : 0;
+        return { recipe, match_info, votes };
       })
-      .sort((a, b) => b.match_info.pct - a.match_info.pct);
+      .sort((a, b) => {
+        if (b.votes !== a.votes) {
+          return b.votes - a.votes;
+        }
+        return b.match_info.pct - a.match_info.pct;
+      });
   };
 
   const handle_add_recipe = async (recipe: Omit<Recipe, 'id'>): Promise<void> => {

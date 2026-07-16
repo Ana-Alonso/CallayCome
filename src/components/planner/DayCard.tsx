@@ -16,6 +16,8 @@ interface DayCardProps {
   destacado?: boolean;
   on_cook?: () => void;
   can_cook?: boolean;
+  hide_breakfasts?: boolean;
+  cooked_days?: number[];
 }
 
 export const DayCard = ({
@@ -30,12 +32,16 @@ export const DayCard = ({
   can_add_slots,
   destacado,
   on_cook,
-  can_cook
+  can_cook,
+  hide_breakfasts = false,
+  cooked_days = []
 }: DayCardProps) => {
   const get_recipe = (id: number | null): Recipe | null => {
     if (id === null) return null;
     return recipes.find(item => item.id === id) ?? null;
   };
+
+  const is_cooked = cooked_days.includes(plan_dia.day);
 
   return (
     <DayCardContainer destacado={destacado}>
@@ -49,17 +55,18 @@ export const DayCard = ({
       {destacado && can_cook && on_cook && (
         <div style={{ padding: '0 16px 12px 16px' }}>
           <Boton
-            texto="Marcar como Cocinado/Comido 🍽️"
+            texto={is_cooked ? "Cocinado/Comido ✓" : "Marcar como Cocinado/Comido 🍽️"}
             color="success"
-            variante="contained"
+            variante={is_cooked ? "outlined" : "contained"}
             clase_css="full-width btn-sm"
             on_click={on_cook}
+            deshabilitado={is_cooked}
           />
         </div>
       )}
 
       <DayMeals>
-        {(['desayuno', 'comida', 'cena'] as const).map(type => (
+        {((hide_breakfasts ? ['comida', 'cena'] : ['desayuno', 'comida', 'cena']) as const).map(type => (
           <div key={type} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {plan_dia[type].map((slot_recipe_id, slot_index) => {
               const recipe = get_recipe(slot_recipe_id);

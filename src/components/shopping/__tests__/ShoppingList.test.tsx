@@ -20,12 +20,13 @@ describe('ShoppingList Component', () => {
         on_recalculate={mockRecalculate}
         on_toggle={mockToggle}
         on_add_custom={mockAddCustom}
+        start_date={null}
       />
     );
 
     // Verify list headers and summary count
     expect(screen.getByText('Lista de la Compra')).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument(); // count of items
+    expect(screen.getAllByText('2').length).toBeGreaterThan(0); // count of items in total/pendientes stats
 
     // Verify items are displayed
     expect(screen.getByText('Tomates')).toBeInTheDocument();
@@ -41,6 +42,7 @@ describe('ShoppingList Component', () => {
         on_recalculate={mockRecalculate}
         on_toggle={mockToggle}
         on_add_custom={mockAddCustom}
+        start_date={null}
       />
     );
 
@@ -65,6 +67,7 @@ describe('ShoppingList Component', () => {
         on_recalculate={mockRecalculate}
         on_toggle={mockToggle}
         on_add_custom={mockAddCustom}
+        start_date={null}
       />
     );
 

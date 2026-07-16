@@ -17,6 +17,8 @@ interface UsePlannerParams {
   trigger_push: (title: string, message: string) => void;
   get_pantry_match_info: (recipe: Recipe) => { matches: number; pct: number };
   get_filtered_recipes: () => Recipe[];
+  increment_recipe_vote?: (recipeId: number) => void;
+  set_cooked_days?: React.Dispatch<React.SetStateAction<number[]>>;
 }
 
 export const use_planner = ({
@@ -31,7 +33,9 @@ export const use_planner = ({
   supabase_connected,
   trigger_push,
   get_pantry_match_info,
-  get_filtered_recipes
+  get_filtered_recipes,
+  increment_recipe_vote,
+  set_cooked_days
 }: UsePlannerParams) => {
 
   const handle_auto_generate_plan = async (recipes: Recipe[]): Promise<void> => {
@@ -75,6 +79,7 @@ export const use_planner = ({
         const { error } = await supabase.from('meal_plans').insert(inserts);
         if (!error) {
           set_meal_plan(new_plan);
+          if (set_cooked_days) set_cooked_days([]);
           trigger_push("Menú Generado 🎉", "Se ha creado un menú equilibrado para los próximos 30 días.");
         }
       } catch (err) {
@@ -82,6 +87,7 @@ export const use_planner = ({
       }
     } else {
       set_meal_plan(new_plan);
+      if (set_cooked_days) set_cooked_days([]);
       trigger_push("Menú Generado 🎉", "Se ha creado un menú equilibrado localmente.");
     }
   };
@@ -101,6 +107,7 @@ export const use_planner = ({
 
         if (!error) {
           set_meal_plan(empty_plan);
+          if (set_cooked_days) set_cooked_days([]);
           trigger_push("Plan Vaciado 🗑️", "Se han eliminado todas las comidas del planificador.");
         }
       } catch (err) {
@@ -108,6 +115,7 @@ export const use_planner = ({
       }
     } else {
       set_meal_plan(empty_plan);
+      if (set_cooked_days) set_cooked_days([]);
       trigger_push("Plan Vaciado 🗑️", "Se han eliminado todas las comidas localmente.");
     }
   };
@@ -249,6 +257,7 @@ export const use_planner = ({
   const handle_change_start_date = async (date: string | null): Promise<void> => {
     set_start_date(date);
     localStorage.setItem('calla_y_come_start_date', date || '');
+    if (set_cooked_days) set_cooked_days([]);
 
     if (supabase_connected && profile?.active_family_id) {
       const supabase = get_supabase_client();
@@ -404,6 +413,21 @@ export const use_planner = ({
           await supabase.from('pantry').update({ quantity: up.quantity }).eq('id', up.id);
         }
       }
+    }
+
+    // Increment votes for cooked dishes
+    if (increment_recipe_vote) {
+      configs.forEach(conf => {
+        increment_recipe_vote(conf.recipe_id);
+      });
+    }
+
+    // Track cooked day
+    if (set_cooked_days) {
+      set_cooked_days(prev => {
+        if (prev.includes(day)) return prev;
+        return [...prev, day];
+      });
     }
 
     const has_leftovers = configs.some(c => c.leftovers > 0);

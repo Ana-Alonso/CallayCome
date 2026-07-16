@@ -44,6 +44,7 @@ interface MiFamiliaProps {
   handle_transfer_role: (family_id: string, new_cocinitas_user_id: string) => Promise<void>;
   get_family_members: (family_id: string) => Promise<FamilyMemberInfo[]>;
   get_family_complaints: (family_id: string) => Promise<Record<string, number>>;
+  show_quejometro?: boolean;
 }
 
 export const MiFamilia = ({
@@ -64,7 +65,8 @@ export const MiFamilia = ({
   handle_vote_suggestion,
   handle_transfer_role,
   get_family_members,
-  get_family_complaints
+  get_family_complaints,
+  show_quejometro = true
 }: MiFamiliaProps) => {
   const [familyName, setFamilyName] = useState<string>('');
   const [inviteCode, setInviteCode] = useState<string>('');
@@ -470,12 +472,14 @@ export const MiFamilia = ({
                           Rol: <strong>{m.role === 'cocinitas' ? 'El Cocinitas 🍳' : 'Miembro 🍽️'}</strong>
                         </TextMuted>
                       </div>
-                      <div style={{ textAlign: 'right', minWidth: '150px' }}>
-                        <span style={{ fontSize: 11, display: 'block', color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Quejómetro:</span>
-                        <span style={{ fontSize: 12, fontWeight: 'bold', color: rankColor }}>
-                          {rank} ({complaints_count} queja{complaints_count !== 1 ? 's' : ''})
-                        </span>
-                      </div>
+                      {show_quejometro && (
+                        <div style={{ textAlign: 'right', minWidth: '150px' }}>
+                          <span style={{ fontSize: 11, display: 'block', color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Quejómetro:</span>
+                          <span style={{ fontSize: 12, fontWeight: 'bold', color: rankColor }}>
+                            {rank} ({complaints_count} queja{complaints_count !== 1 ? 's' : ''})
+                          </span>
+                        </div>
+                      )}
                     </FlexRow>
                   </CardContainer>
                 );

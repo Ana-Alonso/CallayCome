@@ -1,28 +1,34 @@
 import { useState } from 'react';
-import { ShoppingCart, Tag, PenLine, RefreshCw } from 'lucide-react';
+import { ShoppingCart, Tag, PenLine, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Boton } from '../common/Boton';
 import { ShoppingItemCard } from './ShoppingItemCard';
 import { Box } from '../common/Box';
 import { PageContainer, Spacer, PlannerHeader, TitleH2, CardContainer } from '../common';
 import type { ShoppingItem } from '../../types';
+import { get_current_planner_day, get_active_week_info } from '../../utils/planner_helpers';
 
 interface ShoppingListProps {
   shopping_items: ShoppingItem[];
   on_recalculate: () => void;
   on_toggle: (index: number) => void;
   on_add_custom: (name: string, quantity: number, unit: string) => void;
+  start_date: string | null;
 }
 
 export const ShoppingList = ({
   shopping_items,
   on_recalculate,
   on_toggle,
-  on_add_custom
+  on_add_custom,
+  start_date
 }: ShoppingListProps) => {
   const [customName, setCustomName] = useState('');
   const [customQty, setCustomQty] = useState<number>(1);
   const [customUnit, setCustomUnit] = useState('uds');
   const [is_recalculating, set_is_recalculating] = useState(false);
+
+  const current_day = get_current_planner_day(start_date);
+  const week_info = get_active_week_info(current_day);
 
   const auto_items  = shopping_items.filter(item => !item.manual);
   const manual_items = shopping_items.filter(item => item.manual);
@@ -124,10 +130,20 @@ export const ShoppingList = ({
 
       <Spacer height={10} />
 
+      {/* Alert if reached the last day */}
+      {current_day !== null && current_day >= 30 && (
+        <CardContainer style={{ padding: '12px 16px', marginBottom: 12, backgroundColor: 'rgba(239,83,80,0.08)', border: '1px solid rgba(239,83,80,0.2)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <AlertTriangle color="#ef5350" size={24} style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: 13, color: '#ffffff', fontWeight: 500 }}>
+            ⚠️ Has llegado al último día de la planificación (Día {current_day}). Necesitas una nueva lista de la compra. Por favor, actualiza la fecha de inicio del plan y calcula los faltantes.
+          </span>
+        </CardContainer>
+      )}
+
       {/* Info banner */}
       <CardContainer style={{ padding: '10px 14px', marginBottom: 12, backgroundColor: 'rgba(33,150,243,0.08)', border: '1px solid rgba(33,150,243,0.2)', borderRadius: 10 }}>
         <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, display: 'block' }}>
-          💡 <strong style={{ color: '#64b5f6' }}>Calcular Faltantes</strong> revisa tu menú de 30 días, compara con tu despensa y genera aquí los ingredientes que te faltan comprar.
+          💡 <strong style={{ color: '#64b5f6' }}>Calcular Faltantes</strong> revisa tu menú de la <strong style={{ color: '#64b5f6' }}>{week_info.label}</strong>, compara con tu despensa y genera aquí los ingredientes que te faltan comprar.
         </span>
       </CardContainer>
 

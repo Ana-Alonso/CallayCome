@@ -9,7 +9,8 @@ export const AppContainer = styled(Box)(() => ({
   flexDirection: 'column',
   backgroundColor: '#121214',
   position: 'relative',
-  paddingBottom: 80
+  paddingTop: 'env(safe-area-inset-top, 0px)',
+  paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))'
 }));
 
 

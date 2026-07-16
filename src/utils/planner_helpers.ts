@@ -75,3 +75,48 @@ export const serialize_day_plan_for_db = (dayPlan: MealPlanDay) => ({
   comida_slots: dayPlan.comida,
   cena_slots: dayPlan.cena
 });
+
+export const get_current_planner_day = (startDate: string | null): number | null => {
+  if (!startDate) return null;
+  try {
+    const [year, month, day] = startDate.split('-').map(Number);
+    const start = new Date(year, month - 1, day);
+    start.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const diffTime = today.getTime() - start.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    const currentDay = diffDays + 1;
+
+    // Return the actual calculated day number (could be > 30 if past)
+    return currentDay;
+  } catch (e) {
+    console.error(e);
+  }
+  return null;
+};
+
+export interface ActiveWeekInfo {
+  week_number: number;
+  start_day: number;
+  end_day: number;
+  label: string;
+}
+
+export const get_active_week_info = (current_day: number | null): ActiveWeekInfo => {
+  if (!current_day || current_day < 1) {
+    return { week_number: 1, start_day: 1, end_day: 7, label: "Semana 1 (Días 1-7)" };
+  }
+  if (current_day <= 7) {
+    return { week_number: 1, start_day: 1, end_day: 7, label: "Semana 1 (Días 1-7)" };
+  }
+  if (current_day <= 14) {
+    return { week_number: 2, start_day: 8, end_day: 14, label: "Semana 2 (Días 8-14)" };
+  }
+  if (current_day <= 21) {
+    return { week_number: 3, start_day: 15, end_day: 21, label: "Semana 3 (Días 15-21)" };
+  }
+  // Return Week 4 for days 22 to 30 (or even past it)
+  return { week_number: 4, start_day: 22, end_day: 30, label: "Semana 4 (Días 22-30)" };
+};

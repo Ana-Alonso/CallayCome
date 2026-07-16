@@ -58,7 +58,6 @@ export class NotificationService {
               title: notification_title,
               body: notification_body,
               id: Math.floor(Math.random() * 100000),
-              schedule: { at: new Date(Date.now() + 1000) },
               sound: undefined,
               attachments: [],
               actionTypeId: '',

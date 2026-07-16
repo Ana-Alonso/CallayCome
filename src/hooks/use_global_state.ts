@@ -30,9 +30,47 @@ type MealType = 'desayuno' | 'comida' | 'cena';
 export const use_global_state = () => {
   // --- Master State variables (State Lifting) ---
   const [active_tab, set_active_tab] = useState<'plan' | 'despensa' | 'compra' | 'recetas' | 'familia'>('plan');
-  const [pantry_items, set_pantry_items] = useState<PantryItem[]>([]);
-  const [shopping_items, set_shopping_items] = useState<ShoppingItem[]>([]);
-  const [meal_plan, set_meal_plan] = useState<MealPlanDay[]>([]);
+  
+  const [pantry_items, set_pantry_items] = useState<PantryItem[]>(() => {
+    const local = localStorage.getItem('local_pantry');
+    return local ? JSON.parse(local) : [];
+  });
+  
+  const [shopping_items, set_shopping_items] = useState<ShoppingItem[]>(() => {
+    const local = localStorage.getItem('local_shopping');
+    return local ? JSON.parse(local) : [];
+  });
+  
+  const [meal_plan, set_meal_plan] = useState<MealPlanDay[]>(() => {
+    const local = localStorage.getItem('local_plan');
+    if (local) {
+      try {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return Array.from({ length: 30 }, (_, i) => {
+            const dayNum = i + 1;
+            const found = parsed.find((p: any) => p?.day === dayNum);
+            return normalize_day_plan(found, dayNum);
+          });
+        }
+      } catch {}
+    }
+    return Array.from({ length: 30 }, (_, i) => create_empty_day_plan(i + 1));
+  });
+
+  const [hide_breakfasts, set_hide_breakfasts] = useState<boolean>(() => {
+    return localStorage.getItem('calla_y_come_hide_breakfasts') === 'true';
+  });
+
+  const [show_quejometro, set_show_quejometro] = useState<boolean>(() => {
+    return localStorage.getItem('calla_y_come_show_quejometro') !== 'false';
+  });
+
+  const [cooked_days, set_cooked_days] = useState<number[]>(() => {
+    const saved = localStorage.getItem('calla_y_come_cooked_days');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [toast_messages, set_toast_messages] = useState<ToastMessage[]>([]);
   const [supabase_connected, set_supabase_connected] = useState<boolean>(false);
 
@@ -42,12 +80,16 @@ export const use_global_state = () => {
   const [suggestions, set_suggestions] = useState<RecipeSuggestion[]>([]);
   const [auth_loading, set_auth_loading] = useState<boolean>(true);
   const [assigning_meal, set_assigning_meal] = useState<{ day: number; type: MealType; slot_index: number } | null>(null);
-  const [start_date, set_start_date] = useState<string | null>(null);
+  const [start_date, set_start_date] = useState<string | null>(() => {
+    return localStorage.getItem('calla_y_come_start_date') || null;
+  });
 
   // Live refs — always point to the latest state even inside stale closures
   const meal_plan_ref = useRef<MealPlanDay[]>(meal_plan);
   const pantry_items_ref = useRef<PantryItem[]>(pantry_items);
   const recipes_ref = useRef<any[]>([]);
+  const is_dissolving_ref = useRef<boolean>(false);
+  const has_loaded_profile_ref = useRef<boolean>(false);
 
   useEffect(() => { meal_plan_ref.current = meal_plan; }, [meal_plan]);
   useEffect(() => { pantry_items_ref.current = pantry_items; }, [pantry_items]);
@@ -98,6 +140,7 @@ export const use_global_state = () => {
   };
 
   const load_family_data = async (familyId: string): Promise<void> => {
+    if (is_dissolving_ref.current) return;
     const supabase = get_supabase_client();
     if (!supabase) return;
 
@@ -112,13 +155,14 @@ export const use_global_state = () => {
         .single();
 
       if (errorWithDate) {
-        const { data: dataJustId } = await supabase
-          .from('family_units')
-          .select('id')
-          .eq('id', familyId)
-          .single();
-        if (dataJustId) {
-          family_exists = dataJustId;
+        if (errorWithDate.code === 'PGRST116') {
+          // Family unit definitely does not exist
+          family_exists = null;
+        } else {
+          // Other database error (transient, network, or RLS permission check latency).
+          // Do NOT dissolve the family, just return to prevent kicking the user out.
+          console.warn("Failed to load family_units details (will retry):", errorWithDate.message);
+          return;
         }
       } else {
         family_exists = dataWithDate;
@@ -126,15 +170,21 @@ export const use_global_state = () => {
       }
 
       if (!family_exists) {
+        if (is_dissolving_ref.current) return;
+        is_dissolving_ref.current = true;
         trigger_push(
           "Unidad Familiar Disuelta",
           "La unidad familiar ya no existe. Es posible que 'El Cocinitas' haya eliminado su cuenta."
         );
         if (user) {
-          await auth.load_user_profile(user.id);
-        } else {
-          load_local_data();
+          try {
+            await supabase.from('profiles').update({ active_family_id: null }).eq('id', user.id);
+          } catch (e) {
+            console.error("Failed to update profile to null active_family_id:", e);
+          }
+          set_profile(prev => prev ? { ...prev, active_family_id: null } : null);
         }
+        load_local_data();
         return;
       }
 
@@ -157,6 +207,30 @@ export const use_global_state = () => {
     }
   };
 
+  // --- Recipe popularity voting helper functions ---
+  const get_recipe_votes = (recipeId: number): number => {
+    const votesStr = localStorage.getItem('calla_y_come_recipe_votes');
+    if (!votesStr) return 0;
+    try {
+      const votes = JSON.parse(votesStr);
+      return votes[recipeId] || 0;
+    } catch {
+      return 0;
+    }
+  };
+
+  const increment_recipe_vote = (recipeId: number): void => {
+    const votesStr = localStorage.getItem('calla_y_come_recipe_votes');
+    let votes: Record<number, number> = {};
+    if (votesStr) {
+      try {
+        votes = JSON.parse(votesStr);
+      } catch {}
+    }
+    votes[recipeId] = (votes[recipeId] || 0) + 1;
+    localStorage.setItem('calla_y_come_recipe_votes', JSON.stringify(votes));
+  };
+
   // --- Sub-hooks Instantiations ---
   const auth = use_auth({
     set_profile,
@@ -168,7 +242,8 @@ export const use_global_state = () => {
 
   const recipes_handler = use_recipes({
     supabase_connected,
-    trigger_push
+    trigger_push,
+    get_recipe_votes
   });
 
   // Keep recipes ref in sync
@@ -188,7 +263,8 @@ export const use_global_state = () => {
     profile,
     user_id: user?.id ?? null,
     supabase_connected,
-    trigger_push
+    trigger_push,
+    start_date
   });
 
   const planner = use_planner({
@@ -203,7 +279,9 @@ export const use_global_state = () => {
     supabase_connected,
     trigger_push,
     get_pantry_match_info: pantry.get_pantry_match_info,
-    get_filtered_recipes: recipes_handler.get_filtered_recipes
+    get_filtered_recipes: recipes_handler.get_filtered_recipes,
+    increment_recipe_vote,
+    set_cooked_days
   });
 
   const family = use_family({
@@ -262,6 +340,18 @@ export const use_global_state = () => {
   }, [meal_plan, profile?.active_family_id]);
 
   useEffect(() => {
+    localStorage.setItem('calla_y_come_hide_breakfasts', String(hide_breakfasts));
+  }, [hide_breakfasts]);
+
+  useEffect(() => {
+    localStorage.setItem('calla_y_come_show_quejometro', String(show_quejometro));
+  }, [show_quejometro]);
+
+  useEffect(() => {
+    localStorage.setItem('calla_y_come_cooked_days', JSON.stringify(cooked_days));
+  }, [cooked_days]);
+
+  useEffect(() => {
     const is_configured = is_supabase_configured();
     set_supabase_connected(is_configured);
 
@@ -280,33 +370,36 @@ export const use_global_state = () => {
       return;
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        set_user(session.user);
-        auth.load_user_profile(session.user.id).finally(() => {
-          set_auth_loading(false);
-        });
-      } else {
-        load_local_data();
-        set_auth_loading(false);
-      }
-    }).catch(() => {
-      load_local_data();
-      set_auth_loading(false);
-    });
+    const init_auth = async (session: any) => {
+      if (has_loaded_profile_ref.current) return;
+      has_loaded_profile_ref.current = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
+        is_dissolving_ref.current = false;
         set_user(session.user);
-        auth.load_user_profile(session.user.id);
+        await auth.load_user_profile(session.user.id);
       } else {
+        is_dissolving_ref.current = false;
         set_user(null);
         set_profile(null);
         set_my_families([]);
         set_suggestions([]);
         load_local_data();
-        set_auth_loading(false);
       }
+      set_auth_loading(false);
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      init_auth(session);
+    }).catch(() => {
+      init_auth(null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT') {
+        has_loaded_profile_ref.current = false;
+      }
+      init_auth(session);
     });
 
     return () => subscription.unsubscribe();
@@ -508,6 +601,12 @@ export const use_global_state = () => {
     handle_cook_day: (day: number, configs: CookRecipeConfig[]) => planner.handle_cook_day(day, configs, recipes_ref.current),
     get_panic_recipe: planner.get_panic_recipe,
     get_nfc_payload: () => planner.get_nfc_payload(recipes_handler.recipes),
-    handle_add_custom_shopping_item: shopping.handle_add_custom_shopping_item
+    handle_add_custom_shopping_item: shopping.handle_add_custom_shopping_item,
+    hide_breakfasts,
+    set_hide_breakfasts,
+    show_quejometro,
+    set_show_quejometro,
+    cooked_days,
+    set_cooked_days
   };
 };

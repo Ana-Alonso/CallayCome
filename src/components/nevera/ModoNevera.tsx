@@ -16,6 +16,8 @@ interface ModoNeveraProps {
   lavaplatos: string | null;
   max_complaints: number;
   start_date: string | null;
+  hide_breakfasts?: boolean;
+  show_quejometro?: boolean;
 }
 
 export const ModoNevera: React.FC<ModoNeveraProps> = ({
@@ -26,7 +28,9 @@ export const ModoNevera: React.FC<ModoNeveraProps> = ({
   handle_toggle_purchase,
   lavaplatos,
   max_complaints,
-  start_date
+  start_date,
+  hide_breakfasts = false,
+  show_quejometro = true
 }) => {
   const [timeStr, setTimeStr] = useState<string>('');
   const [dateStr, setDateStr] = useState<string>('');
@@ -164,7 +168,7 @@ export const ModoNevera: React.FC<ModoNeveraProps> = ({
             <ChefHat size={20} color="#f26841" /> Menú de Hoy
           </TitleH2>
 
-          {lavaplatos && (
+          {show_quejometro && lavaplatos && (
             <div style={{
               backgroundColor: 'rgba(239,83,80,0.08)',
               border: '1px solid rgba(239,83,80,0.2)',
@@ -189,28 +193,30 @@ export const ModoNevera: React.FC<ModoNeveraProps> = ({
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* Desayuno */}
-              <div style={{
-                backgroundColor: '#13131f',
-                border: '1px solid #1f1f2e',
-                borderRadius: 16,
-                padding: 16
-              }}>
-                <span style={{ fontSize: 11, fontWeight: 'bold', color: '#90caf9', textTransform: 'uppercase', letterSpacing: 1 }}>🍳 DESAYUNO</span>
-                <Spacer height={6} />
-                {des_recipes.length === 0 ? (
-                  <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.4)' }}>Sin planificar</span>
-                ) : (
-                  des_recipes.map(r => (
-                    <div
-                      key={r.id}
-                      onClick={() => set_selected_recipe(r)}
-                      style={{ fontSize: 16, fontWeight: 600, color: '#ffffff', cursor: 'pointer', marginTop: 4, textDecoration: 'underline' }}
-                    >
-                      {r.name}
-                    </div>
-                  ))
-                )}
-              </div>
+              {!hide_breakfasts && (
+                <div style={{
+                  backgroundColor: '#13131f',
+                  border: '1px solid #1f1f2e',
+                  borderRadius: 16,
+                  padding: 16
+                }}>
+                  <span style={{ fontSize: 11, fontWeight: 'bold', color: '#90caf9', textTransform: 'uppercase', letterSpacing: 1 }}>🍳 DESAYUNO</span>
+                  <Spacer height={6} />
+                  {des_recipes.length === 0 ? (
+                    <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.4)' }}>Sin planificar</span>
+                  ) : (
+                    des_recipes.map(r => (
+                      <div
+                        key={r.id}
+                        onClick={() => set_selected_recipe(r)}
+                        style={{ fontSize: 16, fontWeight: 600, color: '#ffffff', cursor: 'pointer', marginTop: 4, textDecoration: 'underline' }}
+                      >
+                        {r.name}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
 
               {/* Comida */}
               <div style={{

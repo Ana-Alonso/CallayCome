@@ -99,7 +99,12 @@ export const App = () => {
     start_date,
     handle_change_start_date,
     handle_cook_day,
-    handle_add_custom_shopping_item
+    handle_add_custom_shopping_item,
+    hide_breakfasts,
+    set_hide_breakfasts,
+    show_quejometro,
+    set_show_quejometro,
+    cooked_days
   } = use_global_state();
 
   const [mostrar_modo_nevera, set_mostrar_modo_nevera] = useState(false);
@@ -120,6 +125,48 @@ export const App = () => {
     };
     setupDeepLink();
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore key events when the user is typing in inputs or textareas
+      if (
+        document.activeElement?.tagName === 'INPUT' ||
+        document.activeElement?.tagName === 'TEXTAREA' ||
+        document.activeElement?.getAttribute('contenteditable') === 'true'
+      ) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+
+      if (key === '1') {
+        set_active_tab('plan');
+      } else if (key === '2') {
+        set_active_tab('despensa');
+      } else if (key === '3') {
+        set_active_tab('compra');
+      } else if (key === '4') {
+        set_active_tab('recetas');
+      } else if (key === '5') {
+        set_active_tab('familia');
+      } else if (active_tab === 'plan') {
+        if (key === 'p') {
+          window.dispatchEvent(new CustomEvent('hotkey-panic'));
+        } else if (key === 'n') {
+          set_mostrar_modo_nevera(prev => !prev);
+        } else if (key === 'f') {
+          set_is_filter_modal_open(prev => !prev);
+        }
+      } else if (active_tab === 'compra') {
+        if (key === 'c') {
+          handle_recalculate_shopping();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [active_tab, handle_recalculate_shopping]);
 
   useEffect(() => {
     if (profile?.active_family_id) {
@@ -313,6 +360,11 @@ export const App = () => {
           get_family_members={get_family_members}
           get_family_complaints={get_family_complaints}
           on_open_nevera={() => set_mostrar_modo_nevera(true)}
+          hide_breakfasts={hide_breakfasts}
+          set_hide_breakfasts={set_hide_breakfasts}
+          show_quejometro={show_quejometro}
+          set_show_quejometro={set_show_quejometro}
+          cooked_days={cooked_days}
         />
       )}
 
@@ -330,6 +382,7 @@ export const App = () => {
           on_recalculate={handle_recalculate_shopping}
           on_toggle={handle_toggle_purchase}
           on_add_custom={handle_add_custom_shopping_item}
+          start_date={start_date}
         />
       )}
 
@@ -357,6 +410,7 @@ export const App = () => {
           handle_transfer_role={handle_transfer_role}
           get_family_members={get_family_members}
           get_family_complaints={get_family_complaints}
+          show_quejometro={show_quejometro}
         />
       )}
 
@@ -445,8 +499,23 @@ export const App = () => {
           lavaplatos={lavaplatos}
           max_complaints={max_complaints}
           start_date={start_date}
+          hide_breakfasts={hide_breakfasts}
+          show_quejometro={show_quejometro}
         />
       )}
+      {/* Keyboard shortcuts footer guide for PC users */}
+      <div style={{
+        textAlign: 'center',
+        padding: '10px 14px',
+        fontSize: '11px',
+        color: 'rgba(255,255,255,0.3)',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        backgroundColor: '#0c0c10',
+        lineHeight: 1.4,
+        marginTop: 'auto'
+      }}>
+        💻 <strong>Atajos de teclado (PC):</strong> [1-5] Navegar | [P] Pánico | [N] Modo Nevera | [F] Filtros | [C] Recalcular compra
+      </div>
     </AppContainer>
   );
 };

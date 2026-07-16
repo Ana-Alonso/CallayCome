@@ -1,5 +1,6 @@
 import type { ShoppingItem, PantryItem, Recipe, MealPlanDay, Profile } from '../types';
 import { get_supabase_client } from '../services/supabase_client';
+import { get_current_planner_day, get_active_week_info } from '../utils/planner_helpers';
 
 interface UseShoppingParams {
   shopping_items: ShoppingItem[];
@@ -8,6 +9,7 @@ interface UseShoppingParams {
   user_id: string | null;
   supabase_connected: boolean;
   trigger_push: (title: string, message: string) => void;
+  start_date: string | null;
 }
 
 export const use_shopping = ({
@@ -16,7 +18,8 @@ export const use_shopping = ({
   profile,
   user_id,
   supabase_connected,
-  trigger_push
+  trigger_push,
+  start_date
 }: UseShoppingParams) => {
 
   // Helper: notify every family member except the actor
@@ -55,10 +58,14 @@ export const use_shopping = ({
     recipes: Recipe[],
     pantry_items: PantryItem[]
   ): Promise<void> => {
-    // 1. Gather all required ingredients from the 30-day menu
+    const current_day = get_current_planner_day(start_date);
+    const week_info = get_active_week_info(current_day);
+    const week_plan = meal_plan.filter(dp => dp.day >= week_info.start_day && dp.day <= week_info.end_day);
+
+    // 1. Gather all required ingredients from the active week menu
     const required: Record<string, { quantity: number; unit: string }> = {};
 
-    meal_plan.forEach(dayPlan => {
+    week_plan.forEach(dayPlan => {
       const all_recipe_ids = [
         ...dayPlan.desayuno,
         ...dayPlan.comida,
@@ -93,7 +100,7 @@ export const use_shopping = ({
         const missing = req.quantity - stock;
         // Search original name casing from recipes
         let display_name = key;
-        for (const dayPlan of meal_plan) {
+        for (const dayPlan of week_plan) {
           const all_ids = [...dayPlan.desayuno, ...dayPlan.comida, ...dayPlan.cena];
           for (const rid of all_ids) {
             if (rid !== null) {
