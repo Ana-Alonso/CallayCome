@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Tag, PenLine, RefreshCw } from 'lucide-react';
 import { Boton } from '../common/Boton';
 import { ShoppingItemCard } from './ShoppingItemCard';
 import { Box } from '../common/Box';
@@ -22,6 +22,11 @@ export const ShoppingList = ({
   const [customName, setCustomName] = useState('');
   const [customQty, setCustomQty] = useState<number>(1);
   const [customUnit, setCustomUnit] = useState('uds');
+  const [is_recalculating, set_is_recalculating] = useState(false);
+
+  const auto_items  = shopping_items.filter(item => !item.manual);
+  const manual_items = shopping_items.filter(item => item.manual);
+  const purchased_count = shopping_items.filter(item => item.purchased).length;
 
   const handle_add_submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +35,15 @@ export const ShoppingList = ({
     setCustomName('');
     setCustomQty(1);
     setCustomUnit('uds');
+  };
+
+  const handle_recalculate = async () => {
+    set_is_recalculating(true);
+    try {
+      await on_recalculate();
+    } finally {
+      set_is_recalculating(false);
+    }
   };
 
   const handle_share_whatsapp = async () => {
@@ -48,7 +62,7 @@ export const ShoppingList = ({
       const toastEvent = new CustomEvent('in-app-notification', {
         detail: {
           title: "Lista Copiada 📋",
-          body: "Se ha copiado el texto formateado al portapapeles. ¡Ya puedes pegarlo en WhatsApp!"
+          body: "Texto copiado al portapapeles. ¡Ya puedes pegarlo en WhatsApp!"
         }
       });
       window.dispatchEvent(toastEvent);
@@ -56,6 +70,33 @@ export const ShoppingList = ({
       console.error(e);
     }
   };
+
+  const section_header = (icon: React.ReactNode, label: string, count: number) => (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      padding: '6px 0 10px 0',
+      borderBottom: '1px solid rgba(255,255,255,0.07)',
+      marginBottom: 10
+    }}>
+      {icon}
+      <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'rgba(255,255,255,0.5)' }}>
+        {label}
+      </span>
+      <span style={{
+        marginLeft: 'auto',
+        fontSize: 11,
+        fontWeight: 700,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderRadius: 20,
+        padding: '2px 8px',
+        color: 'rgba(255,255,255,0.6)'
+      }}>
+        {count}
+      </span>
+    </div>
+  );
 
   return (
     <PageContainer>
@@ -72,9 +113,9 @@ export const ShoppingList = ({
             />
           )}
           <Boton
-            texto="Calcular Faltantes"
-            on_click={on_recalculate}
-            variante="outlined"
+            texto={is_recalculating ? "Calculando…" : "🔄 Calcular Faltantes"}
+            on_click={handle_recalculate}
+            variante="contained"
             color="primary"
             clase_css="btn-sm"
           />
@@ -83,9 +124,41 @@ export const ShoppingList = ({
 
       <Spacer height={10} />
 
+      {/* Info banner */}
+      <CardContainer style={{ padding: '10px 14px', marginBottom: 12, backgroundColor: 'rgba(33,150,243,0.08)', border: '1px solid rgba(33,150,243,0.2)', borderRadius: 10 }}>
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, display: 'block' }}>
+          💡 <strong style={{ color: '#64b5f6' }}>Calcular Faltantes</strong> revisa tu menú de 30 días, compara con tu despensa y genera aquí los ingredientes que te faltan comprar.
+        </span>
+      </CardContainer>
+
+      {/* Stats row */}
+      {shopping_items.length > 0 && (
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Total', value: shopping_items.length, color: '#90caf9' },
+            { label: 'Pendientes', value: shopping_items.length - purchased_count, color: '#ef5350' },
+            { label: 'Comprados', value: purchased_count, color: '#66bb6a' },
+          ].map(stat => (
+            <div key={stat.label} style={{
+              flex: 1,
+              minWidth: 80,
+              backgroundColor: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 10,
+              padding: '8px 12px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: stat.color }}>{stat.value}</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Custom item form */}
       <CardContainer component="form" onSubmit={handle_add_submit} style={{ padding: '12px 16px', marginBottom: 16 }}>
         <span style={{ fontSize: 13, fontWeight: 'bold', color: 'rgba(255,255,255,0.85)', display: 'block', marginBottom: 8 }}>
-          ➕ Añadir artículo personalizado (papel, leche, etc.):
+          ➕ Añadir artículo personalizado:
         </span>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <input
@@ -149,33 +222,59 @@ export const ShoppingList = ({
         </div>
       </CardContainer>
 
-      <Box className="shopping-summary">
-        <Box component="span" className="shopping-summary-text">
-          Ingredientes necesarios que no tienes en la despensa
-        </Box>
-        <Box component="span" className="shopping-summary-count">{shopping_items.length}</Box>
-      </Box>
-
       <Spacer />
 
-      <Box className="shopping-list-items">
-        {shopping_items.length === 0 ? (
-          <Box className="empty-state">
-            <ShoppingCart className="empty-icon" />
-            <Box component="p" className="empty-text">
-              La lista de compra está vacía. Genera el menú del mes o haz clic en "Calcular Faltantes".
-            </Box>
+      {/* Empty state */}
+      {shopping_items.length === 0 ? (
+        <Box className="empty-state">
+          <ShoppingCart className="empty-icon" />
+          <Box component="p" className="empty-text">
+            La lista está vacía. Pulsa <strong>"🔄 Calcular Faltantes"</strong> para comparar tu menú con la despensa y generar la lista de la compra automáticamente.
           </Box>
-        ) : (
-          shopping_items.map((item, index) => (
-            <ShoppingItemCard
-              key={index}
-              item={item}
-              on_toggle={() => on_toggle(index)}
-            />
-          ))
-        )}
-      </Box>
+          <Boton
+            texto="🔄 Calcular Faltantes Ahora"
+            on_click={handle_recalculate}
+            variante="contained"
+            color="primary"
+          />
+        </Box>
+      ) : (
+        <Box className="shopping-list-items">
+          {/* Auto-generated section */}
+          {auto_items.length > 0 && (
+            <CardContainer style={{ padding: '12px 14px', marginBottom: 14 }}>
+              {section_header(<RefreshCw size={13} color="#90caf9" />, 'Ingredientes del menú', auto_items.length)}
+              {auto_items.map((item) => {
+                const global_index = shopping_items.indexOf(item);
+                return (
+                  <ShoppingItemCard
+                    key={item.id ?? global_index}
+                    item={item}
+                    on_toggle={() => on_toggle(global_index)}
+                  />
+                );
+              })}
+            </CardContainer>
+          )}
+
+          {/* Manual section */}
+          {manual_items.length > 0 && (
+            <CardContainer style={{ padding: '12px 14px', marginBottom: 14 }}>
+              {section_header(<PenLine size={13} color="#a5d6a7" />, 'Artículos personalizados', manual_items.length)}
+              {manual_items.map((item) => {
+                const global_index = shopping_items.indexOf(item);
+                return (
+                  <ShoppingItemCard
+                    key={item.id ?? global_index}
+                    item={item}
+                    on_toggle={() => on_toggle(global_index)}
+                  />
+                );
+              })}
+            </CardContainer>
+          )}
+        </Box>
+      )}
     </PageContainer>
   );
 };

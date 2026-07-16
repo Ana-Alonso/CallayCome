@@ -15,7 +15,9 @@ import {
 import type { MealPlanDay, Recipe, CookRecipeConfig } from "../../types";
 import { useState, useEffect } from "react";
 import { SuggestionsDialog } from "./SuggestionsDialog";
-import { use_app_state } from "../../hooks/use_app_state";
+import { RecipeDetailDialog } from "./RecipeDetailDialog";
+import { use_global_state } from "../../hooks/use_global_state";
+import { format_date_display } from "../../utils/planner_helpers";
 import { Dialogo } from "../common/Dialogo";
 import { Box } from "../common/Box";
 
@@ -83,6 +85,12 @@ export const Planner = ({
   const [mostrar_panico, set_mostrar_panico] = useState(false);
   const [panic_result, set_panic_result] = useState<{ recipe: Recipe; missing_count: number; pct: number } | null>(null);
   const [confirmar_cocinado_dia, set_confirmar_cocinado_dia] = useState<number | null>(null);
+  const [viewing_recipe, set_viewing_recipe] = useState<Recipe | null>(null);
+
+  const handle_view_recipe = (recipe_id: number): void => {
+    const recipe = recipes.find(r => r.id === recipe_id) ?? null;
+    set_viewing_recipe(recipe);
+  };
   const [recipes_config, set_recipes_config] = useState<CookRecipeConfig[]>([]);
 
   useEffect(() => {
@@ -117,7 +125,7 @@ export const Planner = ({
     get_panic_recipe,
     pantry_items,
     profile
-  } = use_app_state();
+  } = use_global_state();
 
   useEffect(() => {
     if (profile?.active_family_id) {
@@ -228,23 +236,44 @@ export const Planner = ({
 
       <CardContainer style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <FlexRow style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <FlexRow style={{ gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}>📅 Fecha de inicio del plan:</span>
-            <input
-              type="date"
-              value={start_date || ''}
-              onChange={(e) => on_change_start_date(e.target.value || null)}
+          <FlexRow style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}>📅 Inicio del plan:</span>
+            <label
               style={{
+                position: 'relative',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
                 backgroundColor: '#1c1c24',
-                color: '#ffffff',
                 border: '1px solid #32323e',
                 borderRadius: 8,
                 padding: '6px 12px',
                 fontSize: 14,
-                outline: 'none',
-                cursor: 'pointer'
+                color: start_date ? '#ffffff' : 'rgba(255,255,255,0.4)',
+                cursor: 'pointer',
+                minWidth: 120,
               }}
-            />
+            >
+              <span style={{ pointerEvents: 'none' }}>
+                {start_date ? format_date_display(start_date) : 'dd/mm/aaaa'}
+              </span>
+              <span style={{ fontSize: 12, pointerEvents: 'none', color: 'rgba(255,255,255,0.4)' }}>✏️</span>
+              <input
+                type="date"
+                value={start_date || ''}
+                onChange={(e) => on_change_start_date(e.target.value || null)}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  opacity: 0,
+                  width: '100%',
+                  height: '100%',
+                  cursor: 'pointer',
+                  border: 'none',
+                  padding: 0,
+                }}
+              />
+            </label>
           </FlexRow>
           {current_day && (
             <span style={{ fontSize: 14, color: '#4caf50', fontWeight: 'bold' }}>
@@ -339,6 +368,7 @@ export const Planner = ({
             on_move_slot={(type, slot_index, direction) =>
               on_move_slot(day_plan.day, type, slot_index, direction)
             }
+            on_view_recipe={handle_view_recipe}
             can_add_slots={!is_member}
             destacado={day_plan.day === current_day}
             on_cook={() => set_confirmar_cocinado_dia(day_plan.day)}
@@ -360,6 +390,12 @@ export const Planner = ({
           handle_reject_suggestion(id);
           if (suggestions.length === 1) set_mostrar_sugerencias(false);
         }}
+      />
+
+      <RecipeDetailDialog
+        recipe={viewing_recipe}
+        abierto={viewing_recipe !== null}
+        al_cerrar={() => set_viewing_recipe(null)}
       />
 
       <Dialogo

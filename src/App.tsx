@@ -10,7 +10,7 @@ import {
   Users
 } from 'lucide-react';
 
-import { use_app_state } from './hooks/use_app_state';
+import { use_global_state } from './hooks/use_global_state';
 import { Box } from './components/common/Box';
 import { Dialogo } from './components/common/Dialogo';
 import { ModalFiltros } from './components/common/ModalFiltros';
@@ -100,7 +100,7 @@ export const App = () => {
     handle_change_start_date,
     handle_cook_day,
     handle_add_custom_shopping_item
-  } = use_app_state();
+  } = use_global_state();
 
   const [mostrar_modo_nevera, set_mostrar_modo_nevera] = useState(false);
   const [lavaplatos, set_lavaplatos] = useState<string | null>(null);

@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { X, Info } from 'lucide-react';
 import { IconoBoton } from '../common/IconoBoton';
 import { MealSlotContainer, MealLabel, MealPlaceholder, MealName, FlexRow } from '../common';
 
@@ -7,17 +7,24 @@ interface MealSlotProps {
   receta_nombre: string | null;
   on_click: () => void;
   on_clear: (e: React.MouseEvent) => void;
+  on_view_recipe?: (e: React.MouseEvent) => void;
 }
 
 export const MealSlot = ({
   etiqueta,
   receta_nombre,
   on_click,
-  on_clear
+  on_clear,
+  on_view_recipe,
 }: MealSlotProps) => {
   const handle_clear = (e: React.MouseEvent): void => {
     e.stopPropagation();
     on_clear(e);
+  };
+
+  const handle_view = (e: React.MouseEvent): void => {
+    e.stopPropagation();
+    on_view_recipe?.(e);
   };
 
   return (
@@ -29,7 +36,15 @@ export const MealSlot = ({
       {receta_nombre ? (
         <FlexRow>
           <MealName>{receta_nombre}</MealName>
-          <IconoBoton 
+          {on_view_recipe && (
+            <IconoBoton
+              on_click={handle_view}
+              clase_css="month-btn"
+            >
+              <Info size={14} />
+            </IconoBoton>
+          )}
+          <IconoBoton
             on_click={handle_clear}
             clase_css="month-btn"
           >
