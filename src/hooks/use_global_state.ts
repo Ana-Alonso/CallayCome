@@ -510,6 +510,7 @@ export const use_global_state = () => {
     handle_clear_plan: planner.handle_clear_plan,
     handle_add_pantry: pantry.handle_add_pantry,
     handle_delete_pantry_item: pantry.handle_delete_pantry_item,
+    handle_update_pantry_qty: pantry.handle_update_pantry_qty,
     handle_toggle_purchase: shopping.handle_toggle_purchase,
     toggle_allergy: recipes_handler.toggle_allergy,
     toggle_diet: recipes_handler.toggle_diet,

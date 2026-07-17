@@ -94,8 +94,8 @@ export const use_pantry = ({
 
   const handle_delete_pantry_item = async (itemId: number): Promise<void> => {
     const supabase = get_supabase_client();
-    if (supabase && profile?.active_family_id) {
-
+    const userId = user?.id;
+    if (supabase && (profile?.active_family_id || userId)) {
       try {
         const { error } = await supabase.from('pantry').delete().eq('id', itemId);
         if (!error) {
@@ -108,6 +108,37 @@ export const use_pantry = ({
     } else {
       set_pantry_items(prev => prev.filter(item => item.id !== itemId));
       trigger_push("Eliminado de la despensa 🗑️", "El ingrediente ha sido eliminado localmente.");
+    }
+  };
+
+  const handle_update_pantry_qty = async (itemId: number, newQty: number): Promise<void> => {
+    if (newQty <= 0) {
+      await handle_delete_pantry_item(itemId);
+      return;
+    }
+
+    const supabase = get_supabase_client();
+    const userId = user?.id;
+    if (supabase && (profile?.active_family_id || userId)) {
+      try {
+        const { error } = await supabase
+          .from('pantry')
+          .update({ quantity: newQty })
+          .eq('id', itemId);
+        if (!error) {
+          set_pantry_items(prev => prev.map(item => 
+            item.id === itemId ? { ...item, quantity: newQty } : item
+          ));
+          trigger_push("Despensa actualizada 🍎", "La cantidad del ingrediente ha sido modificada.");
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      set_pantry_items(prev => prev.map(item => 
+        item.id === itemId ? { ...item, quantity: newQty } : item
+      ));
+      trigger_push("Despensa actualizada 🍎", "La cantidad ha sido modificada localmente.");
     }
   };
 
@@ -162,6 +193,7 @@ export const use_pantry = ({
   return {
     handle_add_pantry,
     handle_delete_pantry_item,
+    handle_update_pantry_qty,
     get_pantry_match_info,
     load_pantry_data
   };

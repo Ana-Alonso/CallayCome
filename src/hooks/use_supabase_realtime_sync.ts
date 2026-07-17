@@ -9,11 +9,11 @@ interface RealtimeSyncParams {
   user: User | null;
   profile: Profile | null;
   trigger_push: (title: string, body: string) => void;
-  suggestions_handler_ref: React.MutableRefObject<any>;
-  planner_ref: React.MutableRefObject<any>;
-  pantry_ref: React.MutableRefObject<any>;
-  shopping_ref: React.MutableRefObject<any>;
-  load_family_data_ref: React.MutableRefObject<any>;
+  suggestions_handler_ref: React.RefObject<any>;
+  planner_ref: React.RefObject<any>;
+  pantry_ref: React.RefObject<any>;
+  shopping_ref: React.RefObject<any>;
+  load_family_data_ref: React.RefObject<any>;
 }
 
 export const use_supabase_realtime_sync = ({

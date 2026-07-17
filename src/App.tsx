@@ -72,6 +72,7 @@ export const App = () => {
     handle_clear_plan,
     handle_add_pantry,
     handle_delete_pantry_item,
+    handle_update_pantry_qty,
     handle_toggle_purchase,
     toggle_allergy,
     toggle_diet,
@@ -381,6 +382,7 @@ export const App = () => {
           pantry_items={pantry_items}
           on_add={on_add_pantry}
           on_delete={handle_delete_pantry_item}
+          on_update_qty={handle_update_pantry_qty}
         />
       )}
 

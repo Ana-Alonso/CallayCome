@@ -2,6 +2,7 @@ import type { MealPlanDay, Recipe, PantryItem, ShoppingItem, CookRecipeConfig, P
 import { get_supabase_client } from '../services/supabase_client';
 import type { User } from '@supabase/supabase-js';
 import { create_empty_day_plan, normalize_day_plan, serialize_day_plan_for_db } from '../utils/planner_helpers';
+import { normalize_unit } from '../utils/unit_converter';
 
 type MealType = 'desayuno' | 'comida' | 'cena';
 
@@ -404,18 +405,47 @@ export const use_planner = ({
     const updated_pantry = pantry_items.map(item => {
       const key = item.ingredient_name.toLowerCase().trim();
       if (needed[key]) {
-        const remaining = Math.max(0, item.quantity - needed[key].quantity);
-        needed[key].quantity = Math.max(0, needed[key].quantity - item.quantity);
-        if (remaining <= 0) {
-          if (item.id !== undefined) {
-            items_to_delete.push(item.id);
+        const pantryNorm = normalize_unit(item.quantity, item.unit);
+        const recipeNorm = normalize_unit(needed[key].quantity, needed[key].unit);
+
+        if (pantryNorm.baseUnit === recipeNorm.baseUnit) {
+          const pantryBase = pantryNorm.value;
+          const recipeBase = recipeNorm.value;
+
+          const consumedBase = Math.min(pantryBase, recipeBase);
+          const remainingBase = pantryBase - consumedBase;
+          const remainingRecipeBase = recipeBase - consumedBase;
+
+          // Convert back to original units
+          const remainingPantryQty = Number((remainingBase / pantryNorm.factor).toFixed(2));
+          needed[key].quantity = Number((remainingRecipeBase / recipeNorm.factor).toFixed(2));
+
+          if (remainingPantryQty <= 0) {
+            if (item.id !== undefined) {
+              items_to_delete.push(item.id);
+            }
+            return null;
+          } else {
+            if (item.id !== undefined) {
+              items_to_update.push({ id: item.id, quantity: remainingPantryQty });
+            }
+            return { ...item, quantity: remainingPantryQty };
           }
-          return null;
         } else {
-          if (item.id !== undefined) {
-            items_to_update.push({ id: item.id, quantity: Number(remaining.toFixed(1)) });
+          // Fallback direct subtraction for incompatible units
+          const remaining = Math.max(0, item.quantity - needed[key].quantity);
+          needed[key].quantity = Math.max(0, needed[key].quantity - item.quantity);
+          if (remaining <= 0) {
+            if (item.id !== undefined) {
+              items_to_delete.push(item.id);
+            }
+            return null;
+          } else {
+            if (item.id !== undefined) {
+              items_to_update.push({ id: item.id, quantity: Number(remaining.toFixed(1)) });
+            }
+            return { ...item, quantity: Number(remaining.toFixed(1)) };
           }
-          return { ...item, quantity: Number(remaining.toFixed(1)) };
         }
       }
       return item;
