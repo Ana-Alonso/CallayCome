@@ -112,7 +112,11 @@ export const App = () => {
     notifications_history,
     unread_notif_count,
     handle_clear_notifications,
-    handle_open_notification_center
+    handle_open_notification_center,
+    accessibility_options,
+    update_accessibility,
+    speak,
+    handle_delete_account
   } = use_global_state();
 
   const [mostrar_modo_nevera, set_mostrar_modo_nevera] = useState(false);
@@ -293,8 +297,13 @@ export const App = () => {
     );
   }
 
+  const accessibility_classes = [
+    accessibility_options.high_contrast ? 'accessibility-high-contrast' : '',
+    accessibility_options.large_text ? 'accessibility-large-text' : ''
+  ].filter(Boolean).join(' ');
+
   return (
-    <AppContainer>
+    <AppContainer className={accessibility_classes}>
       <ToastContainer>
         {toast_messages.map(toast => (
           <ToastItem key={toast.id}>
@@ -356,35 +365,35 @@ export const App = () => {
       <NavContainer>
         <NavTabButton
           active={active_tab === 'plan'}
-          onClick={() => set_active_tab('plan')}
+          onClick={() => { set_active_tab('plan'); speak("Plan del Mes"); }}
         >
           <Calendar />
           <Box component="span">Plan del Mes</Box>
         </NavTabButton>
         <NavTabButton
           active={active_tab === 'despensa'}
-          onClick={() => set_active_tab('despensa')}
+          onClick={() => { set_active_tab('despensa'); speak("Despensa"); }}
         >
           <ChefHat />
           <Box component="span">Despensa</Box>
         </NavTabButton>
         <NavTabButton
           active={active_tab === 'compra'}
-          onClick={() => set_active_tab('compra')}
+          onClick={() => { set_active_tab('compra'); speak("Lista Compra"); }}
         >
           <ShoppingCart />
           <Box component="span">Lista Compra</Box>
         </NavTabButton>
         <NavTabButton
           active={active_tab === 'recetas'}
-          onClick={() => set_active_tab('recetas')}
+          onClick={() => { set_active_tab('recetas'); speak("Nueva Receta"); }}
         >
           <PlusCircle />
           <Box component="span">Nueva Receta</Box>
         </NavTabButton>
         <NavTabButton
           active={active_tab === 'familia'}
-          onClick={() => set_active_tab('familia')}
+          onClick={() => { set_active_tab('familia'); speak("Familia y Configuración"); }}
         >
           <Users />
           <Box component="span">Familia</Box>
@@ -470,6 +479,10 @@ export const App = () => {
           get_family_members={get_family_members}
           get_family_complaints={get_family_complaints}
           show_quejometro={show_quejometro}
+          accessibility_options={accessibility_options}
+          update_accessibility={update_accessibility}
+          speak={speak}
+          handle_delete_account={handle_delete_account}
         />
       )}
 

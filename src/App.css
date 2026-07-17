@@ -21,3 +21,63 @@
     grid-template-columns: repeat(4, 1fr);
   }
 }
+
+/* Accessibility overrides */
+.accessibility-high-contrast {
+  background-color: #000000 !important;
+  background: #000000 !important;
+  color: #ffff00 !important;
+}
+
+.accessibility-high-contrast *,
+.accessibility-high-contrast ::placeholder {
+  color: #ffff00 !important;
+}
+
+.accessibility-high-contrast a,
+.accessibility-high-contrast button,
+.accessibility-high-contrast input,
+.accessibility-high-contrast select,
+.accessibility-high-contrast textarea {
+  background-color: #000000 !important;
+  color: #ffff00 !important;
+  border: 2px solid #ffff00 !important;
+  box-shadow: none !important;
+}
+
+.accessibility-high-contrast .toast-item,
+.accessibility-high-contrast .card-container,
+.accessibility-high-contrast div[class*="CardContainer"],
+.accessibility-high-contrast div[class*="Paper"] {
+  background-color: #000000 !important;
+  border: 2px solid #ffff00 !important;
+  background: #000000 !important;
+}
+
+.accessibility-high-contrast .MuiOutlinedInput-root,
+.accessibility-high-contrast .MuiOutlinedInput-notchedOutline {
+  background-color: #000000 !important;
+  border-color: #ffff00 !important;
+}
+
+/* Large Text overrides */
+.accessibility-large-text p,
+.accessibility-large-text span,
+.accessibility-large-text label,
+.accessibility-large-text button,
+.accessibility-large-text input,
+.accessibility-large-text select,
+.accessibility-large-text textarea,
+.accessibility-large-text li,
+.accessibility-large-text a,
+.accessibility-large-text .toast-body,
+.accessibility-large-text .toast-title {
+  font-size: 1.25rem !important;
+}
+
+.accessibility-large-text h1,
+.accessibility-large-text h2,
+.accessibility-large-text h3,
+.accessibility-large-text div[class*="TitleH2"] {
+  font-size: 2.2rem !important;
+}

@@ -151,11 +151,31 @@ export const use_auth = ({
     trigger_push("Sesión cerrada", "Has cerrado sesión.");
   };
 
+  const handle_delete_account = async (userId: string): Promise<boolean> => {
+    const supabase = get_supabase_client();
+    if (!supabase) return false;
+    try {
+      const { error } = await supabase.from('profiles').delete().eq('id', userId);
+      if (error) {
+        trigger_push("Error al borrar cuenta", error.message);
+        return false;
+      }
+      await supabase.auth.signOut();
+      trigger_push("Cuenta Eliminada 🗑️", "Tu cuenta y tus datos han sido eliminados.");
+      return true;
+    } catch (err: any) {
+      console.error(err);
+      trigger_push("Error al borrar cuenta", err.message || String(err));
+      return false;
+    }
+  };
+
   return {
     load_user_families,
     load_user_profile,
     handle_login,
     handle_signup,
-    handle_logout
+    handle_logout,
+    handle_delete_account
   };
 };

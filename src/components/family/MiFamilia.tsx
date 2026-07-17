@@ -45,6 +45,10 @@ interface MiFamiliaProps {
   get_family_members: (family_id: string) => Promise<FamilyMemberInfo[]>;
   get_family_complaints: (family_id: string) => Promise<Record<string, number>>;
   show_quejometro?: boolean;
+  accessibility_options: { high_contrast: boolean; large_text: boolean; read_aloud: boolean };
+  update_accessibility: (key: 'high_contrast' | 'large_text' | 'read_aloud', value: boolean) => void;
+  speak: (text: string) => void;
+  handle_delete_account: () => Promise<boolean>;
 }
 
 export const MiFamilia = ({
@@ -66,7 +70,11 @@ export const MiFamilia = ({
   handle_transfer_role,
   get_family_members,
   get_family_complaints,
-  show_quejometro = true
+  show_quejometro = true,
+  accessibility_options,
+  update_accessibility,
+  speak,
+  handle_delete_account
 }: MiFamiliaProps) => {
   const [familyName, setFamilyName] = useState<string>('');
   const [inviteCode, setInviteCode] = useState<string>('');
@@ -82,6 +90,7 @@ export const MiFamilia = ({
   const [active_family_members, set_active_family_members] = useState<FamilyMemberInfo[]>([]);
   const [quejometro, set_quejometro] = useState<Record<string, number>>({});
   const [loading_active_members, set_loading_active_members] = useState<boolean>(false);
+  const [confirm_delete_account, set_confirm_delete_account] = useState<boolean>(false);
 
   useEffect(() => {
     if (profile?.active_family_id) {
@@ -633,6 +642,95 @@ export const MiFamilia = ({
               </CardContainer>
             ))}
           </PantryInputGrid>
+        </>
+      )}
+
+      {user && (
+        <>
+          <CardContainer style={{ padding: '16px', marginBottom: 16 }}>
+            <span style={{ fontSize: 14, fontWeight: 'bold', display: 'block', marginBottom: 12 }}>
+              👁️ Accesibilidad (Discapacidad Visual)
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13 }}>
+                <input
+                  type="checkbox"
+                  checked={accessibility_options.high_contrast}
+                  onChange={(e) => {
+                    update_accessibility('high_contrast', e.target.checked);
+                    speak("Modo alto contraste " + (e.target.checked ? "activado" : "desactivado"));
+                  }}
+                  style={{ width: 18, height: 18 }}
+                />
+                <span>Modo Alto Contraste (Fondo negro y texto amarillo/blanco)</span>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13 }}>
+                <input
+                  type="checkbox"
+                  checked={accessibility_options.large_text}
+                  onChange={(e) => {
+                    update_accessibility('large_text', e.target.checked);
+                    speak("Texto grande " + (e.target.checked ? "activado" : "desactivado"));
+                  }}
+                  style={{ width: 18, height: 18 }}
+                />
+                <span>Texto Grande (Aumentar tamaño de letra)</span>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13 }}>
+                <input
+                  type="checkbox"
+                  checked={accessibility_options.read_aloud}
+                  onChange={(e) => {
+                    update_accessibility('read_aloud', e.target.checked);
+                    if (!e.target.checked) {
+                      speak("Audio-guía desactivada.");
+                    }
+                  }}
+                  style={{ width: 18, height: 18 }}
+                />
+                <span>Audio-guía (Leer en voz alta los elementos al hacer clic)</span>
+              </label>
+            </div>
+          </CardContainer>
+
+          <CardContainer style={{ padding: '16px', marginBottom: 16, border: '1px solid rgba(239, 83, 80, 0.3)', backgroundColor: 'rgba(239, 83, 80, 0.04)' }}>
+            <span style={{ fontSize: 14, fontWeight: 'bold', color: '#ef5350', display: 'block', marginBottom: 8 }}>
+              ⚠️ Zona de Peligro
+            </span>
+            <span style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', display: 'block', marginBottom: 12 }}>
+              Al eliminar tu cuenta, se borrarán todos tus datos de planificación, despensa, lista de la compra y tu suscripción a unidades familiares de forma permanente.
+            </span>
+            {confirm_delete_account ? (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Boton
+                  texto="Confirmar Eliminación Permanente"
+                  color="error"
+                  on_click={async () => {
+                    setLoading(true);
+                    await handle_delete_account();
+                    setLoading(false);
+                  }}
+                  clase_css="full-width"
+                />
+                <Boton
+                  texto="Cancelar"
+                  color="primary"
+                  variante="outlined"
+                  on_click={() => set_confirm_delete_account(false)}
+                />
+              </div>
+            ) : (
+              <Boton
+                texto="Eliminar mi Cuenta"
+                color="error"
+                variante="outlined"
+                clase_css="full-width"
+                on_click={() => set_confirm_delete_account(true)}
+              />
+            )}
+          </CardContainer>
         </>
       )}
 

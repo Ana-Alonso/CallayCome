@@ -91,6 +91,10 @@ export const use_global_state = () => {
   });
   const [unread_notif_count, set_unread_notif_count] = useState<number>(0);
   const [recipe_weights, set_recipe_weights] = useState<Record<number, number>>({});
+  const [accessibility_options, set_accessibility_options] = useState(() => {
+    const cached = localStorage.getItem('calla_y_come_accessibility');
+    return cached ? JSON.parse(cached) : { high_contrast: false, large_text: false, read_aloud: false };
+  });
 
   // Live refs — always point to the latest state even inside stale closures
   const meal_plan_ref = useRef<MealPlanDay[]>(meal_plan);
@@ -261,6 +265,33 @@ export const use_global_state = () => {
 
   const get_recipe_votes = (recipeId: number): number => {
     return recipe_weights[recipeId] || 0;
+  };
+
+  const speak = (text: string): void => {
+    if (accessibility_options.read_aloud && typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-ES';
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const update_accessibility = (key: 'high_contrast' | 'large_text' | 'read_aloud', value: boolean): void => {
+    set_accessibility_options((prev: any) => {
+      const next = { ...prev, [key]: value };
+      localStorage.setItem('calla_y_come_accessibility', JSON.stringify(next));
+      return next;
+    });
+    if (key === 'read_aloud' && value) {
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance("Audio-guía activada.");
+          utterance.lang = 'es-ES';
+          window.speechSynthesis.speak(utterance);
+        }
+      }, 100);
+    }
   };
 
   const increment_recipe_vote = async (recipeId: number): Promise<void> => {
@@ -637,6 +668,10 @@ export const use_global_state = () => {
     unread_notif_count,
     handle_clear_notifications,
     handle_open_notification_center,
+    accessibility_options,
+    update_accessibility,
+    speak,
+    handle_delete_account: () => auth.handle_delete_account(user?.id ?? ''),
     get_nfc_payload: () => planner.get_nfc_payload(recipes_handler.recipes),
     handle_add_custom_shopping_item: shopping.handle_add_custom_shopping_item,
     hide_breakfasts,
