@@ -26,12 +26,16 @@ export const ShoppingList = ({
   const [customQty, setCustomQty] = useState<number>(1);
   const [customUnit, setCustomUnit] = useState('uds');
   const [is_recalculating, set_is_recalculating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const current_day = get_current_planner_day(start_date);
   const week_info = get_active_week_info(current_day);
 
-  const auto_items  = shopping_items.filter(item => !item.manual && !item.purchased);
-  const manual_items = shopping_items.filter(item => item.manual && !item.purchased);
+  const filtered_items = shopping_items.filter(item =>
+    item.ingredient_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const auto_items  = filtered_items.filter(item => !item.manual && !item.purchased);
+  const manual_items = filtered_items.filter(item => item.manual && !item.purchased);
   const purchased_count = shopping_items.filter(item => item.purchased).length;
 
   const handle_add_submit = (e: React.FormEvent) => {
@@ -238,6 +242,29 @@ export const ShoppingList = ({
         </div>
       </CardContainer>
 
+      {/* Search Bar */}
+      {shopping_items.length > 0 && (
+        <CardContainer style={{ padding: '12px 16px', marginBottom: 16 }}>
+          <input
+            type="text"
+            placeholder="🔍 Buscar artículo en la lista..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              backgroundColor: '#1c1c24',
+              color: '#ffffff',
+              border: '1px solid #32323e',
+              borderRadius: 8,
+              padding: '8px 12px',
+              fontSize: 14,
+              outline: 'none',
+              boxSizing: 'border-box'
+            }}
+          />
+        </CardContainer>
+      )}
+
       <Spacer />
 
       {/* Empty state */}
@@ -253,6 +280,13 @@ export const ShoppingList = ({
             variante="contained"
             color="primary"
           />
+        </Box>
+      ) : filtered_items.length === 0 ? (
+        <Box className="empty-state" style={{ padding: '24px 16px' }}>
+          <ShoppingCart className="empty-icon" style={{ opacity: 0.5 }} />
+          <Box component="p" className="empty-text">
+            No se encontraron artículos que coincidan con la búsqueda "{searchQuery}".
+          </Box>
         </Box>
       ) : (
         <Box className="shopping-list-items">

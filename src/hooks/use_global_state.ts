@@ -613,7 +613,7 @@ export const use_global_state = () => {
     handle_move_meal_slot: planner.handle_move_meal_slot,
     handle_assign_recipe,
     handle_remove_assigned_recipe,
-    get_selectable_recipes: () => recipes_handler.get_selectable_recipes(assigning_meal, pantry.get_pantry_match_info),
+    get_selectable_recipes: () => recipes_handler.get_selectable_recipes(assigning_meal, pantry.get_pantry_match_info, pantry_items_ref.current),
     handle_add_recipe: recipes_handler.handle_add_recipe,
     handle_login: auth.handle_login,
     handle_signup: auth.handle_signup,

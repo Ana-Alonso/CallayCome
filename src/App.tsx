@@ -512,13 +512,30 @@ export const App = () => {
                   </Box>
                 </Box>
               ) : (
-                get_selectable_recipes().map(({ recipe, match_info }) => (
+                get_selectable_recipes().map(({ recipe, match_info, has_leftover }) => (
                   <RecipeSelectCard
                     key={recipe.id}
                     onClick={() => handle_assign_recipe(recipe.id)}
                   >
                     <RecipeCardTop>
-                      <RecipeSelectTitle>{recipe.name}</RecipeSelectTitle>
+                      <RecipeSelectTitle>
+                        {recipe.name}
+                        {has_leftover && (
+                          <span style={{
+                            fontSize: 10,
+                            fontWeight: 'bold',
+                            color: '#81c784',
+                            backgroundColor: 'rgba(129,199,132,0.1)',
+                            padding: '2px 6px',
+                            borderRadius: 6,
+                            marginLeft: 8,
+                            display: 'inline-block',
+                            verticalAlign: 'middle'
+                          }}>
+                            🍲 Sobras
+                          </span>
+                        )}
+                      </RecipeSelectTitle>
                       <PantryMatchBadge low={match_info.pct < 50}>
                         🎯 {match_info.matches}/{match_info.total} ing.
                       </PantryMatchBadge>

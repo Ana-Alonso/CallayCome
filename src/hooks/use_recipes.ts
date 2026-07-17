@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Recipe, FilterState } from '../types';
+import type { Recipe, FilterState, PantryItem } from '../types';
 import local_recipes from '../recipesData.json';
 import { get_supabase_client } from '../services/supabase_client';
 
@@ -127,8 +127,9 @@ export const use_recipes = ({
 
   const get_selectable_recipes = (
     assigning_meal: { day: number; type: 'desayuno' | 'comida' | 'cena'; slot_index: number } | null,
-    get_pantry_match_info: (recipe: Recipe) => { matches: number; total: number; pct: number }
-  ): Array<{ recipe: Recipe; match_info: { matches: number; total: number; pct: number }; votes: number }> => {
+    get_pantry_match_info: (recipe: Recipe) => { matches: number; total: number; pct: number },
+    pantry_items: PantryItem[]
+  ): Array<{ recipe: Recipe; match_info: { matches: number; total: number; pct: number }; votes: number; has_leftover: boolean }> => {
     if (!assigning_meal) return [];
     const type = assigning_meal.type;
     return recipes
@@ -137,9 +138,16 @@ export const use_recipes = ({
       .map(recipe => {
         const match_info = get_pantry_match_info(recipe);
         const votes = get_recipe_votes ? get_recipe_votes(recipe.id) : 0;
-        return { recipe, match_info, votes };
+        const leftover_name = `sobras de ${recipe.name.toLowerCase().trim()}`;
+        const has_leftover = pantry_items.some(
+          p => p.ingredient_name.toLowerCase().trim() === leftover_name && p.quantity > 0
+        );
+        return { recipe, match_info, votes, has_leftover };
       })
       .sort((a, b) => {
+        if (a.has_leftover !== b.has_leftover) {
+          return a.has_leftover ? -1 : 1;
+        }
         if (b.votes !== a.votes) {
           return b.votes - a.votes;
         }

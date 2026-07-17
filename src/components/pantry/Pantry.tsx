@@ -24,11 +24,16 @@ export const Pantry = ({
 }: PantryProps) => {
   const [confirm_subtract_item, set_confirm_subtract_item] = useState<PantryItem | null>(null);
   const [subtract_qty, set_subtract_qty] = useState<number>(0);
+  const [search_query, set_search_query] = useState('');
 
   const handle_delete_click = (item: PantryItem) => {
     set_confirm_subtract_item(item);
     set_subtract_qty(item.quantity);
   };
+
+  const filtered_items = pantry_items.filter(item =>
+    item.ingredient_name.toLowerCase().includes(search_query.toLowerCase())
+  );
 
   return (
     <PageContainer>
@@ -41,6 +46,18 @@ export const Pantry = ({
 
       <PantryForm on_add={on_add} />
 
+      {pantry_items.length > 0 && (
+        <>
+          <Spacer height={15} />
+          <CampoTexto
+            etiqueta="🔍 Buscar ingrediente en la despensa..."
+            valor={search_query}
+            on_change={set_search_query}
+            marcador_posicion="Ej. Sal, Azúcar..."
+          />
+        </>
+      )}
+
       <Spacer />
 
       <Box className="pantry-grid">
@@ -51,8 +68,15 @@ export const Pantry = ({
               Tu despensa está vacía. Registra alimentos para que ordenemos las recetas según lo que tienes.
             </Box>
           </Box>
+        ) : filtered_items.length === 0 ? (
+          <Box className="empty-state" style={{ padding: '24px 16px', gridColumn: '1 / -1' }}>
+            <ChefHat className="empty-icon" style={{ opacity: 0.5 }} />
+            <Box component="p" className="empty-text">
+              No se encontraron ingredientes que coincidan con la búsqueda "{search_query}".
+            </Box>
+          </Box>
         ) : (
-          pantry_items.map((item, index) => (
+          filtered_items.map((item, index) => (
             <PantryItemCard
               key={index}
               item={item}
