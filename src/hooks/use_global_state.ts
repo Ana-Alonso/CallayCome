@@ -15,7 +15,6 @@ import {
   is_supabase_configured 
 } from '../services/supabase_client';
 import { NotificationService } from '../services/notification';
-import { App as CapApp } from '@capacitor/app';
 
 import { use_auth } from './use_auth';
 import { use_recipes } from './use_recipes';
@@ -24,6 +23,8 @@ import { use_shopping } from './use_shopping';
 import { use_planner } from './use_planner';
 import { use_family } from './use_family';
 import { use_suggestions } from './use_suggestions';
+import { use_local_storage_sync } from './use_local_storage_sync';
+import { use_supabase_realtime_sync } from './use_supabase_realtime_sync';
 import { create_empty_day_plan, normalize_day_plan } from '../utils/planner_helpers';
 
 type MealType = 'desayuno' | 'comida' | 'cena';
@@ -352,29 +353,8 @@ export const use_global_state = () => {
     return () => window.removeEventListener('in-app-notification', handle_notification);
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('local_pantry', JSON.stringify(pantry_items));
-  }, [pantry_items]);
-
-  useEffect(() => {
-    localStorage.setItem('local_shopping', JSON.stringify(shopping_items));
-  }, [shopping_items]);
-
-  useEffect(() => {
-    localStorage.setItem('local_plan', JSON.stringify(meal_plan));
-  }, [meal_plan]);
-
-  useEffect(() => {
-    localStorage.setItem('calla_y_come_hide_breakfasts', String(hide_breakfasts));
-  }, [hide_breakfasts]);
-
-  useEffect(() => {
-    localStorage.setItem('calla_y_come_show_quejometro', String(show_quejometro));
-  }, [show_quejometro]);
-
-  useEffect(() => {
-    localStorage.setItem('calla_y_come_cooked_days', JSON.stringify(cooked_days));
-  }, [cooked_days]);
+  // Sync to local storage
+  use_local_storage_sync(pantry_items, shopping_items, meal_plan, hide_breakfasts, show_quejometro, cooked_days);
 
   useEffect(() => {
     recipes_handler.load_recipes();
@@ -448,222 +428,18 @@ export const use_global_state = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (!supabase_connected || !user) {
-      return;
-    }
-
-    const supabase = get_supabase_client();
-    if (!supabase) return;
-
-    const sync_unread_notifications = async () => {
-      const supabase = get_supabase_client();
-      if (!supabase) return;
-      try {
-        const { data: unread, error } = await supabase
-          .from('family_notifications')
-          .select('*')
-          .eq('recipient_user_id', user.id)
-          .is('read_at', null);
-
-        if (error) {
-          console.error('[sync] Error fetching unread notifications:', error);
-          return;
-        }
-
-        if (unread && unread.length > 0) {
-          for (const notif of unread) {
-            trigger_push(notif.title, notif.body);
-            // Mark as read in database
-            await supabase
-              .from('family_notifications')
-              .update({ read_at: new Date().toISOString() })
-              .eq('id', notif.id);
-          }
-        }
-      } catch (err) {
-        console.error('[sync] Catch error fetching unread notifications:', err);
-      }
-    };
-
-    const mark_notification_as_read = async (notifId: number) => {
-      const supabase = get_supabase_client();
-      if (!supabase) return;
-      try {
-        await supabase
-          .from('family_notifications')
-          .update({ read_at: new Date().toISOString() })
-          .eq('id', notifId);
-      } catch (err) {
-        console.error('Error marking notification as read:', err);
-      }
-    };
-
-    // 1. Canal de notificaciones en tiempo real para el usuario actual
-    const notifications_channel = supabase
-      .channel(`notif_${user.id}_${Date.now()}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'family_notifications'
-        },
-        (payload: any) => {
-          const new_notif = payload.new;
-          if (new_notif && new_notif.recipient_user_id === user.id) {
-            trigger_push(new_notif.title, new_notif.body);
-            mark_notification_as_read(new_notif.id);
-          }
-        }
-      )
-      .subscribe();
-
-    // Sync unread notifications on mount/login
-    sync_unread_notifications();
-
-    // Listen for app coming to foreground
-    let appStateListener: any = null;
-    try {
-      appStateListener = CapApp.addListener('appStateChange', (state: any) => {
-        if (state.isActive) {
-          sync_unread_notifications();
-        }
-      });
-    } catch (e) {
-      console.warn("CapApp listener not supported:", e);
-    }
-
-    // 2. Canal de recarga en tiempo real para datos de la familia activa o planificador individual (Hot Reload)
-    let data_channel: any = null;
-
-    if (profile?.active_family_id) {
-      data_channel = supabase
-        .channel(`family_${profile.active_family_id}_${Date.now()}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'meal_plans',
-            filter: `family_id=eq.${profile.active_family_id}`
-          },
-          () => {
-            planner_ref.current.load_planner_data(profile.active_family_id!, user.id);
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'recipe_suggestions',
-            filter: `family_id=eq.${profile.active_family_id}`
-          },
-          () => {
-            suggestions_handler_ref.current.load_suggestions_data(profile.active_family_id!, user?.id);
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'recipe_suggestion_votes'
-          },
-          () => {
-            suggestions_handler_ref.current.load_suggestions_data(profile.active_family_id!, user?.id);
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'family_units',
-            filter: `id=eq.${profile.active_family_id}`
-          },
-          () => {
-            load_family_data_ref.current(profile.active_family_id!);
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'pantry',
-            filter: `family_id=eq.${profile.active_family_id}`
-          },
-          () => {
-            pantry_ref.current.load_pantry_data(profile.active_family_id!);
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'shopping_list',
-            filter: `family_id=eq.${profile.active_family_id}`
-          },
-          () => {
-            shopping_ref.current.load_shopping_data(profile.active_family_id!);
-          }
-        )
-        .subscribe();
-    } else {
-      data_channel = supabase
-        .channel(`user_plan_${user.id}_${Date.now()}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'meal_plans',
-            filter: `user_id=eq.${user.id}`
-          },
-          () => {
-            planner_ref.current.load_planner_data(null, user.id);
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'pantry',
-            filter: `user_id=eq.${user.id}`
-          },
-          () => {
-            pantry_ref.current.load_pantry_data(null, user.id);
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'shopping_list',
-            filter: `user_id=eq.${user.id}`
-          },
-          () => {
-            shopping_ref.current.load_shopping_data(null, user.id);
-          }
-        )
-        .subscribe();
-    }
-
-    return () => {
-      supabase.removeChannel(notifications_channel);
-      if (data_channel) {
-        supabase.removeChannel(data_channel);
-      }
-      if (appStateListener) {
-        appStateListener.remove();
-      }
-    };
-  }, [supabase_connected, user?.id, profile?.active_family_id]);
+  // Setup real-time Supabase subscriptions and notification sync
+  use_supabase_realtime_sync({
+    supabase_connected,
+    user,
+    profile,
+    trigger_push,
+    suggestions_handler_ref,
+    planner_ref,
+    pantry_ref,
+    shopping_ref,
+    load_family_data_ref
+  });
 
   const get_current_role = (): 'cocinitas' | 'miembro' | null => {
     if (!profile?.active_family_id) return null;
