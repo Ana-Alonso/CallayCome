@@ -16,6 +16,37 @@ export const use_family = ({
   load_user_profile
 }: UseFamilyParams) => {
 
+  const notify_all_family_members = async (
+    family_id: string,
+    title: string,
+    body: string
+  ): Promise<void> => {
+    const supabase = get_supabase_client();
+    if (!supabase) return;
+    try {
+      const { data: members } = await supabase
+        .from('family_members')
+        .select('user_id')
+        .eq('family_id', family_id);
+      if (!members || members.length === 0) return;
+      const notifications = members
+        .map((m: any) => ({
+          family_id,
+          recipient_user_id: m.user_id,
+          title,
+          body
+        }));
+      if (notifications.length > 0) {
+        const { error } = await supabase.from('family_notifications').insert(notifications);
+        if (error) {
+          console.error('family_notifications insert error:', error);
+        }
+      }
+    } catch (err) {
+      console.error('family notify_all error:', err);
+    }
+  };
+
   const handle_create_family = async (name: string): Promise<string | null> => {
     if (!user) return null;
     if (my_families.length >= 2) {
@@ -122,6 +153,11 @@ export const use_family = ({
         .eq('id', user.id);
 
       trigger_push("¡Bienvenido/a! 🏠", `Te has unido a la familia '${family.name}'.`);
+      await notify_all_family_members(
+        family.id,
+        "Nuevo Miembro 🚪",
+        `${user.email?.split('@')[0]} se ha unido a la familia.`
+      );
       await load_user_profile(user.id);
       return true;
     } catch (err: any) {
@@ -168,6 +204,12 @@ export const use_family = ({
 
         trigger_push("Familia Disuelta 🗑️", "Has abandonado y disuelto tu unidad familiar.");
       } else {
+        await notify_all_family_members(
+          familyId,
+          "Miembro ha salido 🚪",
+          `${user.email?.split('@')[0]} ha abandonado la familia.`
+        );
+
         // Just remove membership
         await supabase
           .from('family_members')
@@ -212,6 +254,11 @@ export const use_family = ({
         .eq('user_id', newCocinitasUserId);
 
       trigger_push("Rol Transferido 🍳", "Has transferido el rol de 'El Cocinitas' a otro miembro.");
+      await notify_all_family_members(
+        familyId,
+        "Cambio de Cocinitas 🍳",
+        "Se ha transferido el rol de El Cocinitas a otro miembro."
+      );
       await load_user_profile(user.id);
     } catch (err: any) {
       trigger_push("Error", err.message || "No se pudo transferir el rol.");

@@ -1,20 +1,21 @@
 import type { PantryItem, Recipe, Profile } from '../types';
 import { get_supabase_client } from '../services/supabase_client';
+import type { User } from '@supabase/supabase-js';
 
 interface UsePantryParams {
   pantry_items: PantryItem[];
   set_pantry_items: React.Dispatch<React.SetStateAction<PantryItem[]>>;
   profile: Profile | null;
-  supabase_connected: boolean;
   trigger_push: (title: string, message: string) => void;
+  user: User | null;
 }
 
 export const use_pantry = ({
   pantry_items,
   set_pantry_items,
   profile,
-  supabase_connected,
-  trigger_push
+  trigger_push,
+  user
 }: UsePantryParams) => {
 
   const handle_add_pantry = async (name: string, qty: number, unit: string): Promise<void> => {
@@ -24,10 +25,9 @@ export const use_pantry = ({
       item => item.ingredient_name.toLowerCase() === name.trim().toLowerCase()
     );
 
-    if (supabase_connected && profile?.active_family_id) {
-      const supabase = get_supabase_client();
-      if (!supabase) return;
-
+    const supabase = get_supabase_client();
+    const userId = user?.id;
+    if (supabase && (profile?.active_family_id || userId)) {
       try {
         if (existing_index !== -1) {
           const item = pantry_items[existing_index];
@@ -44,14 +44,20 @@ export const use_pantry = ({
             trigger_push("Despensa actualizada 🍎", `Se ha sumado la cantidad a: ${name}`);
           }
         } else {
+          const insertRow: any = {
+            ingredient_name: name.trim(),
+            quantity: qty,
+            unit
+          };
+          if (profile?.active_family_id) {
+            insertRow.family_id = profile.active_family_id;
+          } else {
+            insertRow.user_id = userId;
+          }
+
           const { data, error } = await supabase
             .from('pantry')
-            .insert([{
-              family_id: profile.active_family_id,
-              ingredient_name: name.trim(),
-              quantity: qty,
-              unit
-            }])
+            .insert([insertRow])
             .select()
             .single();
 
@@ -87,9 +93,8 @@ export const use_pantry = ({
   };
 
   const handle_delete_pantry_item = async (itemId: number): Promise<void> => {
-    if (supabase_connected && profile?.active_family_id) {
-      const supabase = get_supabase_client();
-      if (!supabase) return;
+    const supabase = get_supabase_client();
+    if (supabase && profile?.active_family_id) {
 
       try {
         const { error } = await supabase.from('pantry').delete().eq('id', itemId);
@@ -125,16 +130,21 @@ export const use_pantry = ({
     return { matches, total: recipe.ingredients.length, pct };
   };
 
-  const load_pantry_data = async (familyId: string): Promise<void> => {
-    if (!supabase_connected) return;
+  const load_pantry_data = async (familyId: string | null, userId?: string | null): Promise<void> => {
     const supabase = get_supabase_client();
     if (!supabase) return;
 
     try {
-      const { data, error } = await supabase
-        .from('pantry')
-        .select('*')
-        .eq('family_id', familyId);
+      let query = supabase.from('pantry').select('*');
+      if (familyId) {
+        query = query.eq('family_id', familyId);
+      } else if (userId) {
+        query = query.eq('user_id', userId).is('family_id', null);
+      } else {
+        return;
+      }
+
+      const { data, error } = await query;
 
       if (!error && data) {
         set_pantry_items(data.map((item: any) => ({

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShoppingCart, Tag, PenLine, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ShoppingCart, PenLine, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Boton } from '../common/Boton';
 import { ShoppingItemCard } from './ShoppingItemCard';
 import { Box } from '../common/Box';
@@ -30,8 +30,8 @@ export const ShoppingList = ({
   const current_day = get_current_planner_day(start_date);
   const week_info = get_active_week_info(current_day);
 
-  const auto_items  = shopping_items.filter(item => !item.manual);
-  const manual_items = shopping_items.filter(item => item.manual);
+  const auto_items  = shopping_items.filter(item => !item.manual && !item.purchased);
+  const manual_items = shopping_items.filter(item => item.manual && !item.purchased);
   const purchased_count = shopping_items.filter(item => item.purchased).length;
 
   const handle_add_submit = (e: React.FormEvent) => {
@@ -256,38 +256,49 @@ export const ShoppingList = ({
         </Box>
       ) : (
         <Box className="shopping-list-items">
-          {/* Auto-generated section */}
-          {auto_items.length > 0 && (
-            <CardContainer style={{ padding: '12px 14px', marginBottom: 14 }}>
-              {section_header(<RefreshCw size={13} color="#90caf9" />, 'Ingredientes del menú', auto_items.length)}
-              {auto_items.map((item) => {
-                const global_index = shopping_items.indexOf(item);
-                return (
-                  <ShoppingItemCard
-                    key={item.id ?? global_index}
-                    item={item}
-                    on_toggle={() => on_toggle(global_index)}
-                  />
-                );
-              })}
-            </CardContainer>
-          )}
+          {auto_items.length === 0 && manual_items.length === 0 ? (
+            <Box className="empty-state" style={{ padding: '24px 16px' }}>
+              <ShoppingCart className="empty-icon" style={{ opacity: 0.5 }} />
+              <Box component="p" className="empty-text" style={{ fontSize: 15, fontWeight: '500', color: '#a5d6a7' }}>
+                ¡Todo comprado! 🎉 Todos los ingredientes están listos en tu despensa.
+              </Box>
+            </Box>
+          ) : (
+            <>
+              {/* Auto-generated section */}
+              {auto_items.length > 0 && (
+                <CardContainer style={{ padding: '12px 14px', marginBottom: 14 }}>
+                  {section_header(<RefreshCw size={13} color="#90caf9" />, 'Ingredientes del menú', auto_items.length)}
+                  {auto_items.map((item) => {
+                    const global_index = shopping_items.indexOf(item);
+                    return (
+                      <ShoppingItemCard
+                        key={item.id ?? global_index}
+                        item={item}
+                        on_toggle={() => on_toggle(global_index)}
+                      />
+                    );
+                  })}
+                </CardContainer>
+              )}
 
-          {/* Manual section */}
-          {manual_items.length > 0 && (
-            <CardContainer style={{ padding: '12px 14px', marginBottom: 14 }}>
-              {section_header(<PenLine size={13} color="#a5d6a7" />, 'Artículos personalizados', manual_items.length)}
-              {manual_items.map((item) => {
-                const global_index = shopping_items.indexOf(item);
-                return (
-                  <ShoppingItemCard
-                    key={item.id ?? global_index}
-                    item={item}
-                    on_toggle={() => on_toggle(global_index)}
-                  />
-                );
-              })}
-            </CardContainer>
+              {/* Manual section */}
+              {manual_items.length > 0 && (
+                <CardContainer style={{ padding: '12px 14px', marginBottom: 14 }}>
+                  {section_header(<PenLine size={13} color="#a5d6a7" />, 'Artículos personalizados', manual_items.length)}
+                  {manual_items.map((item) => {
+                    const global_index = shopping_items.indexOf(item);
+                    return (
+                      <ShoppingItemCard
+                        key={item.id ?? global_index}
+                        item={item}
+                        on_toggle={() => on_toggle(global_index)}
+                      />
+                    );
+                  })}
+                </CardContainer>
+              )}
+            </>
           )}
         </Box>
       )}

@@ -63,7 +63,11 @@ describe('Planner Component', () => {
   ];
 
   test('renders planner and configures portions/leftovers per recipe', async () => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
 
     render(
       <Planner
@@ -85,6 +89,11 @@ describe('Planner Component', () => {
         get_family_members={mockGetMembers}
         get_family_complaints={mockGetComplaints}
         on_open_nevera={mockOpenNevera}
+        hide_breakfasts={false}
+        set_hide_breakfasts={vi.fn()}
+        show_quejometro={true}
+        set_show_quejometro={vi.fn()}
+        cooked_days={[]}
       />
     );
 

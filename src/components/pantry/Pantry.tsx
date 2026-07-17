@@ -8,7 +8,7 @@ import type { PantryItem } from '../../types';
 interface PantryProps {
   pantry_items: PantryItem[];
   on_add: (name: string, qty: number, unit: string) => void;
-  on_delete: (index: number) => void;
+  on_delete: (id: number) => void;
 }
 
 export const Pantry = ({
@@ -42,7 +42,7 @@ export const Pantry = ({
             <PantryItemCard
               key={index}
               item={item}
-              on_delete={() => on_delete(index)}
+              on_delete={() => on_delete(item.id!)}
             />
           ))
         )}

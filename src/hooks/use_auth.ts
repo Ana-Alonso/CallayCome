@@ -5,7 +5,7 @@ interface UseAuthParams {
   set_profile: (profile: Profile | null) => void;
   set_my_families: (families: FamilyMember[]) => void;
   trigger_push: (title: string, message: string) => void;
-  load_family_data: (familyId: string) => Promise<void>;
+  load_family_data: (familyId: string | null, startDateVal?: string | null, userId?: string) => Promise<void>;
   load_local_data: () => void;
 }
 
@@ -17,12 +17,12 @@ export const use_auth = ({
   load_local_data
 }: UseAuthParams) => {
 
-  const load_user_families = async (userId: string): Promise<void> => {
+  const load_user_families = async (userId: string): Promise<any[]> => {
     const supabase = get_supabase_client();
-    if (!supabase) return;
+    if (!supabase) return [];
 
     try {
-      const { data: memberships } = await supabase
+      const { data: memberships, error: memError } = await supabase
         .from('family_members')
         .select(`
           family_id,
@@ -30,10 +30,17 @@ export const use_auth = ({
           role,
           family_units (
             name,
-            invite_code
+            invite_code,
+            start_date
           )
         `)
         .eq('user_id', userId);
+
+      if (memError) {
+        console.error("memberships error:", memError);
+        trigger_push("Error de Miembros DB", memError.message);
+        return [];
+      }
 
       if (memberships) {
         const mapped = memberships.map((m: any) => ({
@@ -41,13 +48,17 @@ export const use_auth = ({
           user_id: m.user_id,
           role: m.role as 'cocinitas' | 'miembro',
           family_name: m.family_units?.name || 'Familia',
-          invite_code: m.family_units?.invite_code || ''
+          invite_code: m.family_units?.invite_code || '',
+          start_date: m.family_units?.start_date || null
         }));
         set_my_families(mapped);
+        return mapped;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      trigger_push("Error de Familias Catch", err.message || String(err));
     }
+    return [];
   };
 
   const load_user_profile = async (userId: string): Promise<void> => {
@@ -55,25 +66,49 @@ export const use_auth = ({
     if (!supabase) return;
 
     try {
-      const { data: prof } = await supabase
+      const { data: prof, error: profError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
+      if (profError) {
+        console.error("profile error:", profError);
+        trigger_push("Error de Perfil DB", profError.message);
+        load_local_data();
+        return;
+      }
+
       if (prof) {
         set_profile(prof as Profile);
-        await load_user_families(userId);
-        if (prof.active_family_id) {
-          await load_family_data(prof.active_family_id);
+        const families = await load_user_families(userId);
+        
+        let active_id = prof.active_family_id;
+        // Auto-select the first family if active_family_id is null but user belongs to one or more families
+        if (!active_id && families.length > 0) {
+          active_id = families[0].family_id;
+          await supabase
+            .from('profiles')
+            .update({ active_family_id: active_id })
+            .eq('id', userId);
+          
+          set_profile({ ...(prof as Profile), active_family_id: active_id });
+        }
+
+        if (active_id) {
+          const active_membership = families.find((f: any) => f.family_id === active_id);
+          const start_date_val = active_membership?.start_date || null;
+          await load_family_data(active_id, start_date_val, userId);
         } else {
-          load_local_data();
+          await load_family_data(null, null, userId);
         }
       } else {
+        trigger_push("Perfil no encontrado", "No se encontró tu perfil en la base de datos.");
         load_local_data();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      trigger_push("Error de Perfil Catch", err.message || String(err));
       load_local_data();
     }
   };

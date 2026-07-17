@@ -104,7 +104,8 @@ export const App = () => {
     set_hide_breakfasts,
     show_quejometro,
     set_show_quejometro,
-    cooked_days
+    cooked_days,
+    get_panic_recipe
   } = use_global_state();
 
   const [mostrar_modo_nevera, set_mostrar_modo_nevera] = useState(false);
@@ -365,6 +366,13 @@ export const App = () => {
           show_quejometro={show_quejometro}
           set_show_quejometro={set_show_quejometro}
           cooked_days={cooked_days}
+          suggestions={suggestions}
+          handle_approve_suggestion={handle_approve_suggestion}
+          handle_reject_suggestion={handle_reject_suggestion}
+          handle_vote_suggestion={handle_vote_suggestion}
+          get_panic_recipe={get_panic_recipe}
+          pantry_items={pantry_items}
+          profile={profile}
         />
       )}
 

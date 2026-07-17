@@ -38,7 +38,6 @@ export const use_suggestions = ({
   // Helper: insert a notification for every family member except one (the actor)
   const notify_all_family_members = async (
     family_id: string,
-    except_user_id: string,
     title: string,
     body: string
   ): Promise<void> => {
@@ -51,7 +50,6 @@ export const use_suggestions = ({
         .eq('family_id', family_id);
       if (!members || members.length === 0) return;
       const notifications = members
-        .filter((m: any) => m.user_id !== except_user_id)
         .map((m: any) => ({
           family_id,
           recipient_user_id: m.user_id,
@@ -59,7 +57,10 @@ export const use_suggestions = ({
           body
         }));
       if (notifications.length > 0) {
-        await supabase.from('family_notifications').insert(notifications);
+        const { error } = await supabase.from('family_notifications').insert(notifications);
+        if (error) {
+          console.error('family_notifications insert error:', error);
+        }
       }
     } catch (err) {
       console.error('notify_all_family_members error:', err);
@@ -98,7 +99,6 @@ export const use_suggestions = ({
         // Notify the whole family (except the suggester) about the new proposal
         await notify_all_family_members(
           profile.active_family_id,
-          user.id,
           'Nueva Sugerencia 📝',
           `${actor} ha propuesto "${recipe_name}" para el Día ${day} (${type}).`
         );
@@ -175,7 +175,6 @@ export const use_suggestions = ({
       const actor = get_actor_display_name();
       await notify_all_family_members(
         profile.active_family_id,
-        user?.id ?? '',
         'Menú Actualizado ✅',
         `${actor} aprobó una sugerencia. El menú del Día ${sugg.day} ha cambiado.`
       );
@@ -216,14 +215,21 @@ export const use_suggestions = ({
         .update({ status: 'rechazado' })
         .eq('id', suggestionId);
 
-      // Notify proposer
+      // Notify the whole family that the suggestion was rejected
       const actor = get_actor_display_name();
+      await notify_all_family_members(
+        profile.active_family_id,
+        'Sugerencia Rechazada ❌',
+        `${actor} ha rechazado una sugerencia para el Día ${sugg.day}.`
+      );
+
+      // Also notify proposer directly
       await supabase
         .from('family_notifications')
         .insert([{
           family_id: profile.active_family_id,
           recipient_user_id: sugg.suggested_by,
-          title: "Sugerencia Rechazada ❌",
+          title: "Tu Sugerencia fue Rechazada ❌",
           body: `${actor} ha rechazado tu sugerencia para el Día ${sugg.day}.`
         }]);
 
@@ -271,6 +277,26 @@ export const use_suggestions = ({
             user_id: user.id,
             vote
           }]);
+      }
+
+      // Notify the whole family about the vote
+      if (vote === 'like') {
+        const { data: sugg } = await supabase
+          .from('recipe_suggestions')
+          .select('suggested_by, day, meal_type, suggested_recipe_id')
+          .eq('id', suggestionId)
+          .single();
+
+        if (sugg) {
+          const chosen_recipe = recipes.find(r => r.id === sugg.suggested_recipe_id);
+          const recipe_name = chosen_recipe?.name ?? 'tu receta';
+          const actor = get_actor_display_name();
+          await notify_all_family_members(
+            profile.active_family_id,
+            'Voto en Sugerencia 👍',
+            `${actor} ha votado a favor de la propuesta "${recipe_name}" para el Día ${sugg.day}.`
+          );
+        }
       }
 
       await load_family_data(profile.active_family_id);
@@ -346,7 +372,9 @@ export const use_suggestions = ({
             suggested_by: s.suggested_by,
             status: s.status as 'pendiente' | 'aprobado' | 'rechazado',
             user_display_name: s.profiles?.display_name || 'Miembro',
-            recipe_name: recipe ? recipe.name : (s.recipes?.recipe_data?.name ?? 'Receta'),
+            recipe_name: (Array.isArray(s.recipes)
+                  ? s.recipes[0]?.recipe_data?.name
+                  : s.recipes?.recipe_data?.name) || recipe?.name || 'Receta',
             likes_count: (votes_by_suggestion[Number(s.id)] || []).filter(v => v.vote === 'like').length,
             dislikes_count: (votes_by_suggestion[Number(s.id)] || []).filter(v => v.vote === 'dislike').length,
             my_vote: ((votes_by_suggestion[Number(s.id)] || []).find(v => v.user_id === userId)?.vote || null) as 'like' | 'dislike' | null

@@ -8,6 +8,7 @@ interface MealSlotProps {
   on_click: () => void;
   on_clear: (e: React.MouseEvent) => void;
   on_view_recipe?: (e: React.MouseEvent) => void;
+  can_clear?: boolean;
 }
 
 export const MealSlot = ({
@@ -16,6 +17,7 @@ export const MealSlot = ({
   on_click,
   on_clear,
   on_view_recipe,
+  can_clear = true,
 }: MealSlotProps) => {
   const handle_clear = (e: React.MouseEvent): void => {
     e.stopPropagation();
@@ -44,12 +46,14 @@ export const MealSlot = ({
               <Info size={14} />
             </IconoBoton>
           )}
-          <IconoBoton
-            on_click={handle_clear}
-            clase_css="month-btn"
-          >
-            <X size={14} />
-          </IconoBoton>
+          {can_clear && (
+            <IconoBoton
+              on_click={handle_clear}
+              clase_css="month-btn"
+            >
+              <X size={14} />
+            </IconoBoton>
+          )}
         </FlexRow>
       ) : (
         <MealPlaceholder>+ Añadir {etiqueta.toLowerCase()}</MealPlaceholder>

@@ -1,5 +1,6 @@
 import type { MealPlanDay, Recipe, PantryItem, ShoppingItem, CookRecipeConfig, Profile } from '../types';
 import { get_supabase_client } from '../services/supabase_client';
+import type { User } from '@supabase/supabase-js';
 import { create_empty_day_plan, normalize_day_plan, serialize_day_plan_for_db } from '../utils/planner_helpers';
 
 type MealType = 'desayuno' | 'comida' | 'cena';
@@ -13,12 +14,12 @@ interface UsePlannerParams {
   set_pantry_items: React.Dispatch<React.SetStateAction<PantryItem[]>>;
   shopping_items: ShoppingItem[];
   profile: Profile | null;
-  supabase_connected: boolean;
   trigger_push: (title: string, message: string) => void;
   get_pantry_match_info: (recipe: Recipe) => { matches: number; pct: number };
   get_filtered_recipes: () => Recipe[];
   increment_recipe_vote?: (recipeId: number) => void;
   set_cooked_days?: React.Dispatch<React.SetStateAction<number[]>>;
+  user: User | null;
 }
 
 export const use_planner = ({
@@ -30,13 +31,41 @@ export const use_planner = ({
   set_pantry_items,
   shopping_items,
   profile,
-  supabase_connected,
   trigger_push,
   get_pantry_match_info,
   get_filtered_recipes,
   increment_recipe_vote,
-  set_cooked_days
+  set_cooked_days,
+  user
 }: UsePlannerParams) => {
+
+  const notify_all_family_members = async (
+    family_id: string,
+    title: string,
+    body: string
+  ): Promise<void> => {
+    const supabase = get_supabase_client();
+    if (!supabase) return;
+    try {
+      const { data: members } = await supabase
+        .from('family_members')
+        .select('user_id')
+        .eq('family_id', family_id);
+      if (!members || members.length === 0) return;
+      const notifications = members
+        .map((m: any) => ({
+          family_id,
+          recipient_user_id: m.user_id,
+          title,
+          body
+        }));
+      if (notifications.length > 0) {
+        await supabase.from('family_notifications').insert(notifications);
+      }
+    } catch (err) {
+      console.error('[planner] notify error:', err);
+    }
+  };
 
   const handle_auto_generate_plan = async (recipes: Recipe[]): Promise<void> => {
     const list_desayunos = recipes.filter(r => r.meal_type === 'desayuno');
@@ -61,26 +90,43 @@ export const use_planner = ({
       };
     });
 
-    if (supabase_connected && profile?.active_family_id) {
-      const supabase = get_supabase_client();
-      if (!supabase) return;
-
+    const supabase = get_supabase_client();
+    const userId = user?.id;
+    if (supabase && (profile?.active_family_id || userId)) {
       try {
-        await supabase
-          .from('meal_plans')
-          .delete()
-          .eq('family_id', profile.active_family_id);
+        let query = supabase.from('meal_plans').delete();
+        if (profile?.active_family_id) {
+          query = query.eq('family_id', profile.active_family_id);
+        } else {
+          query = query.eq('user_id', userId).is('family_id', null);
+        }
+        await query;
 
-        const inserts = new_plan.map(dp => ({
-          family_id: profile.active_family_id,
-          ...serialize_day_plan_for_db(dp)
-        }));
+        const inserts = new_plan.map(dp => {
+          const row: any = {
+            ...serialize_day_plan_for_db(dp),
+            day: dp.day
+          };
+          if (profile?.active_family_id) {
+            row.family_id = profile.active_family_id;
+          } else {
+            row.user_id = userId;
+          }
+          return row;
+        });
 
         const { error } = await supabase.from('meal_plans').insert(inserts);
         if (!error) {
           set_meal_plan(new_plan);
           if (set_cooked_days) set_cooked_days([]);
           trigger_push("Menú Generado 🎉", "Se ha creado un menú equilibrado para los próximos 30 días.");
+          if (profile?.active_family_id) {
+            await notify_all_family_members(
+              profile.active_family_id,
+              "Menú Generado 🎉",
+              "Se ha generado un nuevo menú para los próximos 30 días."
+            );
+          }
         }
       } catch (err) {
         console.error(err);
@@ -95,20 +141,29 @@ export const use_planner = ({
   const handle_clear_plan = async (): Promise<void> => {
     const empty_plan = Array.from({ length: 30 }, (_, i) => create_empty_day_plan(i + 1));
 
-    if (supabase_connected && profile?.active_family_id) {
-      const supabase = get_supabase_client();
-      if (!supabase) return;
-
+    const supabase = get_supabase_client();
+    const userId = user?.id;
+    if (supabase && (profile?.active_family_id || userId)) {
       try {
-        const { error } = await supabase
-          .from('meal_plans')
-          .delete()
-          .eq('family_id', profile.active_family_id);
+        let query = supabase.from('meal_plans').delete();
+        if (profile?.active_family_id) {
+          query = query.eq('family_id', profile.active_family_id);
+        } else {
+          query = query.eq('user_id', userId).is('family_id', null);
+        }
+        const { error } = await query;
 
         if (!error) {
           set_meal_plan(empty_plan);
           if (set_cooked_days) set_cooked_days([]);
           trigger_push("Plan Vaciado 🗑️", "Se han eliminado todas las comidas del planificador.");
+          if (profile?.active_family_id) {
+            await notify_all_family_members(
+              profile.active_family_id,
+              "Plan Vaciado 🗑️",
+              "Se ha vaciado el menú de la planificación."
+            );
+          }
         }
       } catch (err) {
         console.error(err);
@@ -121,18 +176,19 @@ export const use_planner = ({
   };
 
   const save_or_update_day_plan = async (dayPlan: MealPlanDay): Promise<void> => {
-    if (supabase_connected && profile?.active_family_id) {
-      const supabase = get_supabase_client();
-      if (!supabase) return;
-
+    const supabase = get_supabase_client();
+    const userId = user?.id;
+    if (supabase && (profile?.active_family_id || userId)) {
       try {
         const serialized = serialize_day_plan_for_db(dayPlan);
-        const { data } = await supabase
-          .from('meal_plans')
-          .select('id')
-          .eq('family_id', profile.active_family_id)
-          .eq('day', dayPlan.day)
-          .single();
+        let query = supabase.from('meal_plans').select('id');
+        if (profile?.active_family_id) {
+          query = query.eq('family_id', profile.active_family_id);
+        } else {
+          query = query.eq('user_id', userId).is('family_id', null);
+        }
+        query = query.eq('day', dayPlan.day);
+        const { data } = await query.single();
 
         if (data) {
           await supabase
@@ -140,12 +196,16 @@ export const use_planner = ({
             .update(serialized)
             .eq('id', data.id);
         } else {
-          await supabase
-            .from('meal_plans')
-            .insert([{
-              family_id: profile.active_family_id,
-              ...serialized
-            }]);
+          const insertRow: any = {
+            ...serialized,
+            day: dayPlan.day
+          };
+          if (profile?.active_family_id) {
+            insertRow.family_id = profile.active_family_id;
+          } else {
+            insertRow.user_id = userId;
+          }
+          await supabase.from('meal_plans').insert([insertRow]);
         }
       } catch (err) {
         console.error(err);
@@ -232,6 +292,14 @@ export const use_planner = ({
       }
       return d;
     }));
+
+    if (profile?.active_family_id) {
+      await notify_all_family_members(
+        profile.active_family_id,
+        "Plato Asignado 🍳",
+        `Se ha asignado un plato al menú del Día ${day} (${type}).`
+      );
+    }
   };
 
   const handle_remove_assigned_recipe = async (
@@ -252,6 +320,14 @@ export const use_planner = ({
       }
       return d;
     }));
+
+    if (profile?.active_family_id) {
+      await notify_all_family_members(
+        profile.active_family_id,
+        "Plato Quitado 🗑️",
+        `Se ha quitado el plato del Día ${day} (${type}).`
+      );
+    }
   };
 
   const handle_change_start_date = async (date: string | null): Promise<void> => {
@@ -259,22 +335,26 @@ export const use_planner = ({
     localStorage.setItem('calla_y_come_start_date', date || '');
     if (set_cooked_days) set_cooked_days([]);
 
-    if (supabase_connected && profile?.active_family_id) {
-      const supabase = get_supabase_client();
-      if (supabase) {
-        try {
+    const supabase = get_supabase_client();
+    if (supabase && profile?.active_family_id) {
+      try {
           const { error } = await supabase
             .from('family_units')
             .update({ start_date: date })
             .eq('id', profile.active_family_id);
           if (error) {
             console.warn("Error updating start_date in family_units:", error.message);
+          } else {
+            await notify_all_family_members(
+              profile.active_family_id,
+              "Inicio del Plan Cambiado 📅",
+              `Se ha actualizado la fecha de inicio del menú.`
+            );
           }
         } catch (err) {
           console.warn("Exception updating start_date in family_units:", err);
         }
       }
-    }
   };
 
   const handle_cook_day = async (
@@ -349,9 +429,8 @@ export const use_planner = ({
         item => item.ingredient_name.toLowerCase() === leftover.name.toLowerCase()
       );
 
-      if (supabase_connected && profile?.active_family_id) {
-        const supabase = get_supabase_client();
-        if (supabase) {
+      const supabase = get_supabase_client();
+      if (supabase && profile?.active_family_id) {
           if (existing_index !== -1) {
             const item = updated_pantry[existing_index];
             const new_qty = item.quantity + leftover.quantity;
@@ -384,7 +463,6 @@ export const use_planner = ({
               }]);
             }
           }
-        }
       } else {
         // Local fallback
         if (existing_index !== -1) {
@@ -402,10 +480,8 @@ export const use_planner = ({
       }
     }
 
-    // Process database deletes/updates for ingredients
-    if (supabase_connected) {
-      const supabase = get_supabase_client();
-      if (supabase) {
+    const supabase = get_supabase_client();
+    if (supabase) {
         if (items_to_delete.length > 0) {
           await supabase.from('pantry').delete().in('id', items_to_delete);
         }
@@ -413,7 +489,6 @@ export const use_planner = ({
           await supabase.from('pantry').update({ quantity: up.quantity }).eq('id', up.id);
         }
       }
-    }
 
     // Increment votes for cooked dishes
     if (increment_recipe_vote) {
@@ -437,6 +512,14 @@ export const use_planner = ({
         ? "Buen provecho. Se han restado los ingredientes usados y guardado las raciones de sobras en la despensa."
         : "Buen provecho. Los ingredientes utilizados se han restado de tu despensa."
     );
+
+    if (profile?.active_family_id) {
+      await notify_all_family_members(
+        profile.active_family_id,
+        "Día Cocinado 🍽️",
+        `Se ha marcado como cocinado/comido el Día ${day}.`
+      );
+    }
   };
 
   const get_panic_recipe = (): { recipe: Recipe; missing_count: number; pct: number } | null => {
@@ -506,18 +589,32 @@ export const use_planner = ({
     return `📍 *Calla y Come - Vista NFC* 📲\n\n📅 *Día ${current_day_num || "?"} del plan*\n${menu_text}\n\n🛒 *Faltantes Urgentes*:\n${shopping_text}`;
   };
 
-  const load_planner_data = async (familyId: string): Promise<void> => {
-    if (!supabase_connected) return;
+  const load_planner_data = async (familyId: string | null, userId?: string | null): Promise<void> => {
     const supabase = get_supabase_client();
     if (!supabase) return;
 
     try {
-      const { data, error } = await supabase
-        .from('meal_plans')
-        .select('*')
-        .eq('family_id', familyId);
+      let query = supabase.from('meal_plans').select('*');
+      if (familyId) {
+        query = query.eq('family_id', familyId);
+      } else if (userId) {
+        query = query.eq('user_id', userId).is('family_id', null);
+      } else {
+        return;
+      }
 
-      if (!error && data) {
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error loading meal plans:', error);
+        trigger_push("Error Planificador", error.message);
+        return;
+      }
+
+      if (data) {
+        if (data.length === 0) {
+          trigger_push("Planificador Vacío", "No hay platos en la base de datos.");
+        }
         const empty_plan = Array.from({ length: 30 }, (_, i) => create_empty_day_plan(i + 1));
         const final_plan = empty_plan.map(empty_day => {
           const db_day = data.find((d: any) => d.day === empty_day.day);
@@ -528,8 +625,9 @@ export const use_planner = ({
         });
         set_meal_plan(final_plan);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading meal plans:', err);
+      trigger_push("Error Planificador Exception", err.message || String(err));
     }
   };
 

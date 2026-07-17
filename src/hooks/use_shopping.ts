@@ -1,31 +1,31 @@
 import type { ShoppingItem, PantryItem, Recipe, MealPlanDay, Profile } from '../types';
 import { get_supabase_client } from '../services/supabase_client';
+import type { User } from '@supabase/supabase-js';
 import { get_current_planner_day, get_active_week_info } from '../utils/planner_helpers';
 
 interface UseShoppingParams {
   shopping_items: ShoppingItem[];
   set_shopping_items: React.Dispatch<React.SetStateAction<ShoppingItem[]>>;
   profile: Profile | null;
-  user_id: string | null;
-  supabase_connected: boolean;
   trigger_push: (title: string, message: string) => void;
   start_date: string | null;
+  handle_add_pantry: (name: string, qty: number, unit: string) => Promise<void>;
+  user: User | null;
 }
 
 export const use_shopping = ({
   shopping_items,
   set_shopping_items,
   profile,
-  user_id,
-  supabase_connected,
   trigger_push,
-  start_date
+  start_date,
+  handle_add_pantry,
+  user
 }: UseShoppingParams) => {
 
   // Helper: notify every family member except the actor
   const notify_all_family_members = async (
     family_id: string,
-    except_user_id: string | null,
     title: string,
     body: string
   ): Promise<void> => {
@@ -38,7 +38,6 @@ export const use_shopping = ({
         .eq('family_id', family_id);
       if (!members || members.length === 0) return;
       const notifications = members
-        .filter((m: any) => m.user_id !== except_user_id)
         .map((m: any) => ({
           family_id,
           recipient_user_id: m.user_id,
@@ -46,7 +45,10 @@ export const use_shopping = ({
           body
         }));
       if (notifications.length > 0) {
-        await supabase.from('family_notifications').insert(notifications);
+        const { error } = await supabase.from('family_notifications').insert(notifications);
+        if (error) {
+          console.error('family_notifications insert error:', error);
+        }
       }
     } catch (err) {
       console.error('shopping notify_all error:', err);
@@ -124,26 +126,34 @@ export const use_shopping = ({
     // Keep manual items
     const manual_items = shopping_items.filter(item => item.manual);
 
-    if (supabase_connected && profile?.active_family_id) {
-      const supabase = get_supabase_client();
-      if (!supabase) return;
-
+    const supabase = get_supabase_client();
+    const userId = user?.id;
+    if (supabase && (profile?.active_family_id || userId)) {
       try {
         // Delete auto-calculated items
-        await supabase
-          .from('shopping_list')
-          .delete()
-          .eq('family_id', profile.active_family_id)
-          .eq('manual', false);
+        let deleteQuery = supabase.from('shopping_list').delete().eq('manual', false);
+        if (profile?.active_family_id) {
+          deleteQuery = deleteQuery.eq('family_id', profile.active_family_id);
+        } else {
+          deleteQuery = deleteQuery.eq('user_id', userId).is('family_id', null);
+        }
+        await deleteQuery;
 
-        const inserts = needed_items.map(item => ({
-          family_id: profile.active_family_id,
-          ingredient_name: item.name,
-          quantity: item.quantity,
-          unit: item.unit,
-          purchased: false,
-          manual: false
-        }));
+        const inserts = needed_items.map(item => {
+          const row: any = {
+            ingredient_name: item.name,
+            quantity: item.quantity,
+            unit: item.unit,
+            purchased: false,
+            manual: false
+          };
+          if (profile?.active_family_id) {
+            row.family_id = profile.active_family_id;
+          } else {
+            row.user_id = userId;
+          }
+          return row;
+        });
 
         if (inserts.length > 0) {
           const { data, error } = await supabase
@@ -167,12 +177,13 @@ export const use_shopping = ({
         }
 
         // Notify the whole family that the shopping list was updated
-        await notify_all_family_members(
-          profile.active_family_id,
-          user_id,
-          'Lista de Compra Actualizada 🛒',
-          'Se ha recalculado la lista de la compra según el menú actual.'
-        );
+        if (profile?.active_family_id) {
+          await notify_all_family_members(
+            profile.active_family_id,
+            'Lista de Compra Actualizada 🛒',
+            'Se ha recalculado la lista de la compra según el menú actual.'
+          );
+        }
       } catch (err) {
         console.error(err);
       }
@@ -198,9 +209,8 @@ export const use_shopping = ({
 
     const new_purchased = !item.purchased;
 
-    if (supabase_connected && profile?.active_family_id) {
-      const supabase = get_supabase_client();
-      if (!supabase) return;
+    const supabase = get_supabase_client();
+    if (supabase && profile?.active_family_id) {
 
       try {
         const { error } = await supabase
@@ -212,6 +222,16 @@ export const use_shopping = ({
           set_shopping_items(prev => prev.map((it, idx) => 
             idx === index ? { ...it, purchased: new_purchased } : it
           ));
+          if (new_purchased) {
+            await handle_add_pantry(item.ingredient_name, item.quantity, item.unit);
+            if (profile?.active_family_id) {
+              await notify_all_family_members(
+                profile.active_family_id,
+                'Artículo Comprado 🛒',
+                `Se ha comprado "${item.ingredient_name}" (${item.quantity} ${item.unit}) y se ha añadido a la despensa.`
+              );
+            }
+          }
         }
       } catch (err) {
         console.error(err);
@@ -220,6 +240,9 @@ export const use_shopping = ({
       set_shopping_items(prev => prev.map((it, idx) => 
         idx === index ? { ...it, purchased: new_purchased } : it
       ));
+      if (new_purchased) {
+        await handle_add_pantry(item.ingredient_name, item.quantity, item.unit);
+      }
     }
   };
 
@@ -230,21 +253,26 @@ export const use_shopping = ({
   ): Promise<void> => {
     if (!name.trim()) return;
 
-    if (supabase_connected && profile?.active_family_id) {
-      const supabase = get_supabase_client();
-      if (!supabase) return;
-
+    const supabase = get_supabase_client();
+    const userId = user?.id;
+    if (supabase && (profile?.active_family_id || userId)) {
       try {
+        const insertRow: any = {
+          ingredient_name: name.trim(),
+          quantity,
+          unit,
+          purchased: false,
+          manual: true
+        };
+        if (profile?.active_family_id) {
+          insertRow.family_id = profile.active_family_id;
+        } else {
+          insertRow.user_id = userId;
+        }
+
         const { data, error } = await supabase
           .from('shopping_list')
-          .insert([{
-            family_id: profile.active_family_id,
-            ingredient_name: name.trim(),
-            quantity,
-            unit,
-            purchased: false,
-            manual: true
-          }])
+          .insert([insertRow])
           .select()
           .single();
 
@@ -259,23 +287,30 @@ export const use_shopping = ({
           }]);
           trigger_push('Añadido a la lista 📝', `${name} se ha añadido a tu lista de compra.`);
           // Notify the rest of the family
-          await notify_all_family_members(
-            profile.active_family_id,
-            user_id,
-            'Nuevo Artículo en la Compra 🛒',
-            `Se ha añadido "${name}" a la lista de la compra familiar.`
-          );
+          if (profile?.active_family_id) {
+            await notify_all_family_members(
+              profile.active_family_id,
+              'Nuevo Artículo en la Compra 🛒',
+              `Se ha añadido "${name}" a la lista de la compra familiar.`
+            );
+          }
         } else if (error) {
           // fallback if manual column doesn't exist
+          const fallbackRow: any = {
+            ingredient_name: name.trim(),
+            quantity,
+            unit,
+            purchased: false
+          };
+          if (profile?.active_family_id) {
+            fallbackRow.family_id = profile.active_family_id;
+          } else {
+            fallbackRow.user_id = userId;
+          }
+
           const { data: fallbackData, error: fallbackError } = await supabase
             .from('shopping_list')
-            .insert([{
-              family_id: profile.active_family_id,
-              ingredient_name: name.trim(),
-              quantity,
-              unit,
-              purchased: false
-            }])
+            .insert([fallbackRow])
             .select()
             .single();
 
@@ -308,16 +343,21 @@ export const use_shopping = ({
     }
   };
 
-  const load_shopping_data = async (familyId: string): Promise<void> => {
-    if (!supabase_connected) return;
+  const load_shopping_data = async (familyId: string | null, userId?: string | null): Promise<void> => {
     const supabase = get_supabase_client();
     if (!supabase) return;
 
     try {
-      const { data, error } = await supabase
-        .from('shopping_list')
-        .select('*')
-        .eq('family_id', familyId);
+      let query = supabase.from('shopping_list').select('*');
+      if (familyId) {
+        query = query.eq('family_id', familyId);
+      } else if (userId) {
+        query = query.eq('user_id', userId).is('family_id', null);
+      } else {
+        return;
+      }
+
+      const { data, error } = await query;
 
       if (!error && data) {
         set_shopping_items(data.map((item: any) => ({

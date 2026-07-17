@@ -15,6 +15,7 @@ import {
   is_supabase_configured 
 } from '../services/supabase_client';
 import { NotificationService } from '../services/notification';
+import { App as CapApp } from '@capacitor/app';
 
 import { use_auth } from './use_auth';
 import { use_recipes } from './use_recipes';
@@ -89,7 +90,7 @@ export const use_global_state = () => {
   const pantry_items_ref = useRef<PantryItem[]>(pantry_items);
   const recipes_ref = useRef<any[]>([]);
   const is_dissolving_ref = useRef<boolean>(false);
-  const has_loaded_profile_ref = useRef<boolean>(false);
+  const loaded_session_id_ref = useRef<string | null>(null);
 
   useEffect(() => { meal_plan_ref.current = meal_plan; }, [meal_plan]);
   useEffect(() => { pantry_items_ref.current = pantry_items; }, [pantry_items]);
@@ -139,69 +140,84 @@ export const use_global_state = () => {
     }
   };
 
-  const load_family_data = async (familyId: string): Promise<void> => {
+  const load_family_data = async (familyId: string | null, startDateVal?: string | null, userId?: string): Promise<void> => {
     if (is_dissolving_ref.current) return;
     const supabase = get_supabase_client();
     if (!supabase) return;
 
     try {
-      let family_exists: any = null;
-      let start_date_val: string | null = null;
+      let start_date_val: string | null = startDateVal !== undefined ? startDateVal : null;
 
-      const { data: dataWithDate, error: errorWithDate } = await supabase
-        .from('family_units')
-        .select('id, start_date')
-        .eq('id', familyId)
-        .single();
+      if (familyId) {
+        let family_exists: boolean = true;
 
-      if (errorWithDate) {
-        if (errorWithDate.code === 'PGRST116') {
-          // Family unit definitely does not exist
-          family_exists = null;
-        } else {
-          // Other database error (transient, network, or RLS permission check latency).
-          // Do NOT dissolve the family, just return to prevent kicking the user out.
-          console.warn("Failed to load family_units details (will retry):", errorWithDate.message);
+        if (startDateVal === undefined) {
+          const { data: dataWithDate, error: errorWithDate } = await supabase
+            .from('family_units')
+            .select('id, start_date')
+            .eq('id', familyId)
+            .single();
+
+          if (errorWithDate) {
+            if (errorWithDate.code === 'PGRST116') {
+              family_exists = false;
+            } else {
+              console.warn("Failed to load family_units details (will retry):", errorWithDate.message);
+              trigger_push("Error Datos Familia", errorWithDate.message);
+              return;
+            }
+          } else {
+            start_date_val = dataWithDate?.start_date || null;
+          }
+        }
+
+        if (!family_exists) {
+          if (is_dissolving_ref.current) return;
+          is_dissolving_ref.current = true;
+          trigger_push(
+            "Unidad Familiar Disuelta",
+            "La unidad familiar ya no existe. Es posible que 'El Cocinitas' haya eliminado su cuenta."
+          );
+          if (user) {
+            try {
+              await supabase.from('profiles').update({ active_family_id: null }).eq('id', user.id);
+            } catch (e) {
+              console.error("Failed to update profile to null active_family_id:", e);
+            }
+            set_profile(prev => prev ? { ...prev, active_family_id: null } : null);
+          }
+          load_local_data();
           return;
         }
-      } else {
-        family_exists = dataWithDate;
-        start_date_val = dataWithDate?.start_date || null;
-      }
 
-      if (!family_exists) {
-        if (is_dissolving_ref.current) return;
-        is_dissolving_ref.current = true;
-        trigger_push(
-          "Unidad Familiar Disuelta",
-          "La unidad familiar ya no existe. Es posible que 'El Cocinitas' haya eliminado su cuenta."
-        );
-        if (user) {
-          try {
-            await supabase.from('profiles').update({ active_family_id: null }).eq('id', user.id);
-          } catch (e) {
-            console.error("Failed to update profile to null active_family_id:", e);
-          }
-          set_profile(prev => prev ? { ...prev, active_family_id: null } : null);
+        if (start_date_val) {
+          set_start_date(start_date_val);
+        } else {
+          const local_start_date = localStorage.getItem('calla_y_come_start_date');
+          set_start_date(local_start_date || null);
         }
-        load_local_data();
-        return;
-      }
 
-      if (start_date_val) {
-        set_start_date(start_date_val);
+        // Delegate queries to sub-hooks in parallel
+        await Promise.all([
+          recipes_handler.load_recipes(),
+          pantry.load_pantry_data(familyId),
+          shopping.load_shopping_data(familyId),
+          planner.load_planner_data(familyId, userId || user?.id),
+          suggestions_handler.load_suggestions_data(familyId, userId || user?.id)
+        ]);
       } else {
+        // Individual User Mode (No active family)
         const local_start_date = localStorage.getItem('calla_y_come_start_date');
         set_start_date(local_start_date || null);
-      }
 
-      // Delegate queries to sub-hooks in parallel
-      await Promise.all([
-        pantry.load_pantry_data(familyId),
-        shopping.load_shopping_data(familyId),
-        planner.load_planner_data(familyId),
-        suggestions_handler.load_suggestions_data(familyId, user?.id)
-      ]);
+        await Promise.all([
+          recipes_handler.load_recipes(),
+          pantry.load_pantry_data(null, userId || user?.id),
+          shopping.load_shopping_data(null, userId || user?.id),
+          planner.load_planner_data(null, userId || user?.id)
+        ]);
+        set_suggestions([]);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -241,7 +257,6 @@ export const use_global_state = () => {
   });
 
   const recipes_handler = use_recipes({
-    supabase_connected,
     trigger_push,
     get_recipe_votes
   });
@@ -253,18 +268,18 @@ export const use_global_state = () => {
     pantry_items,
     set_pantry_items,
     profile,
-    supabase_connected,
-    trigger_push
+    trigger_push,
+    user
   });
 
   const shopping = use_shopping({
     shopping_items,
     set_shopping_items,
     profile,
-    user_id: user?.id ?? null,
-    supabase_connected,
     trigger_push,
-    start_date
+    start_date,
+    handle_add_pantry: pantry.handle_add_pantry,
+    user
   });
 
   const planner = use_planner({
@@ -276,12 +291,12 @@ export const use_global_state = () => {
     set_pantry_items,
     shopping_items,
     profile,
-    supabase_connected,
     trigger_push,
     get_pantry_match_info: pantry.get_pantry_match_info,
     get_filtered_recipes: recipes_handler.get_filtered_recipes,
     increment_recipe_vote,
-    set_cooked_days
+    set_cooked_days,
+    user
   });
 
   const family = use_family({
@@ -299,6 +314,22 @@ export const use_global_state = () => {
     set_suggestions,
     recipes: recipes_handler.recipes
   });
+
+  // Keep handlers in refs to avoid stale closures in realtime subscriptions
+  const suggestions_handler_ref = useRef(suggestions_handler);
+  suggestions_handler_ref.current = suggestions_handler;
+
+  const planner_ref = useRef(planner);
+  planner_ref.current = planner;
+
+  const pantry_ref = useRef(pantry);
+  pantry_ref.current = pantry;
+
+  const shopping_ref = useRef(shopping);
+  shopping_ref.current = shopping;
+
+  const load_family_data_ref = useRef(load_family_data);
+  load_family_data_ref.current = load_family_data;
 
   // --- Sync Effects ---
   useEffect(() => {
@@ -322,22 +353,16 @@ export const use_global_state = () => {
   }, []);
 
   useEffect(() => {
-    if (!profile?.active_family_id) {
-      localStorage.setItem('local_pantry', JSON.stringify(pantry_items));
-    }
-  }, [pantry_items, profile?.active_family_id]);
+    localStorage.setItem('local_pantry', JSON.stringify(pantry_items));
+  }, [pantry_items]);
 
   useEffect(() => {
-    if (!profile?.active_family_id) {
-      localStorage.setItem('local_shopping', JSON.stringify(shopping_items));
-    }
-  }, [shopping_items, profile?.active_family_id]);
+    localStorage.setItem('local_shopping', JSON.stringify(shopping_items));
+  }, [shopping_items]);
 
   useEffect(() => {
-    if (!profile?.active_family_id) {
-      localStorage.setItem('local_plan', JSON.stringify(meal_plan));
-    }
-  }, [meal_plan, profile?.active_family_id]);
+    localStorage.setItem('local_plan', JSON.stringify(meal_plan));
+  }, [meal_plan]);
 
   useEffect(() => {
     localStorage.setItem('calla_y_come_hide_breakfasts', String(hide_breakfasts));
@@ -350,6 +375,10 @@ export const use_global_state = () => {
   useEffect(() => {
     localStorage.setItem('calla_y_come_cooked_days', JSON.stringify(cooked_days));
   }, [cooked_days]);
+
+  useEffect(() => {
+    recipes_handler.load_recipes();
+  }, [supabase_connected]);
 
   useEffect(() => {
     const is_configured = is_supabase_configured();
@@ -371,8 +400,15 @@ export const use_global_state = () => {
     }
 
     const init_auth = async (session: any) => {
-      if (has_loaded_profile_ref.current) return;
-      has_loaded_profile_ref.current = true;
+      const session_id = session?.access_token || 'none';
+      if (loaded_session_id_ref.current === session_id) return;
+
+      // If we already loaded a valid session, don't override it with 'none' (from timeout or slower null events)
+      if (session_id === 'none' && loaded_session_id_ref.current && loaded_session_id_ref.current !== 'none') {
+        return;
+      }
+
+      loaded_session_id_ref.current = session_id;
 
       if (session) {
         is_dissolving_ref.current = false;
@@ -389,15 +425,22 @@ export const use_global_state = () => {
       set_auth_loading(false);
     };
 
+    const authTimeout = setTimeout(() => {
+      console.warn("Supabase session check timed out, falling back to offline/local mode.");
+      init_auth(null);
+    }, 3000);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(authTimeout);
       init_auth(session);
     }).catch(() => {
+      clearTimeout(authTimeout);
       init_auth(null);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT') {
-        has_loaded_profile_ref.current = false;
+        loaded_session_id_ref.current = null;
       }
       init_auth(session);
     });
@@ -406,12 +449,55 @@ export const use_global_state = () => {
   }, []);
 
   useEffect(() => {
-    if (!supabase_connected || !user || !profile?.active_family_id) {
+    if (!supabase_connected || !user) {
       return;
     }
 
     const supabase = get_supabase_client();
     if (!supabase) return;
+
+    const sync_unread_notifications = async () => {
+      const supabase = get_supabase_client();
+      if (!supabase) return;
+      try {
+        const { data: unread, error } = await supabase
+          .from('family_notifications')
+          .select('*')
+          .eq('recipient_user_id', user.id)
+          .is('read_at', null);
+
+        if (error) {
+          console.error('[sync] Error fetching unread notifications:', error);
+          return;
+        }
+
+        if (unread && unread.length > 0) {
+          for (const notif of unread) {
+            trigger_push(notif.title, notif.body);
+            // Mark as read in database
+            await supabase
+              .from('family_notifications')
+              .update({ read_at: new Date().toISOString() })
+              .eq('id', notif.id);
+          }
+        }
+      } catch (err) {
+        console.error('[sync] Catch error fetching unread notifications:', err);
+      }
+    };
+
+    const mark_notification_as_read = async (notifId: number) => {
+      const supabase = get_supabase_client();
+      if (!supabase) return;
+      try {
+        await supabase
+          .from('family_notifications')
+          .update({ read_at: new Date().toISOString() })
+          .eq('id', notifId);
+      } catch (err) {
+        console.error('Error marking notification as read:', err);
+      }
+    };
 
     // 1. Canal de notificaciones en tiempo real para el usuario actual
     const notifications_channel = supabase
@@ -421,97 +507,161 @@ export const use_global_state = () => {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'family_notifications',
-          filter: `recipient_user_id=eq.${user.id}`
+          table: 'family_notifications'
         },
         (payload: any) => {
           const new_notif = payload.new;
-          if (new_notif) {
+          if (new_notif && new_notif.recipient_user_id === user.id) {
             trigger_push(new_notif.title, new_notif.body);
+            mark_notification_as_read(new_notif.id);
           }
         }
       )
       .subscribe();
 
-    // 2. Canal de recarga en tiempo real para datos de la familia activa (Hot Reload)
-    const family_data_channel = supabase
-      .channel(`family_${profile.active_family_id}_${Date.now()}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'meal_plans',
-          filter: `family_id=eq.${profile.active_family_id}`
-        },
-        () => {
-          load_family_data(profile.active_family_id!);
+    // Sync unread notifications on mount/login
+    sync_unread_notifications();
+
+    // Listen for app coming to foreground
+    let appStateListener: any = null;
+    try {
+      appStateListener = CapApp.addListener('appStateChange', (state: any) => {
+        if (state.isActive) {
+          sync_unread_notifications();
         }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'recipe_suggestions',
-          filter: `family_id=eq.${profile.active_family_id}`
-        },
-        () => {
-          load_family_data(profile.active_family_id!);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'recipe_suggestion_votes'
-        },
-        () => {
-          load_family_data(profile.active_family_id!);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'family_units',
-          filter: `id=eq.${profile.active_family_id}`
-        },
-        () => {
-          load_family_data(profile.active_family_id!);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'pantry',
-          filter: `family_id=eq.${profile.active_family_id}`
-        },
-        () => {
-          load_family_data(profile.active_family_id!);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'shopping_list',
-          filter: `family_id=eq.${profile.active_family_id}`
-        },
-        () => {
-          load_family_data(profile.active_family_id!);
-        }
-      )
-      .subscribe();
+      });
+    } catch (e) {
+      console.warn("CapApp listener not supported:", e);
+    }
+
+    // 2. Canal de recarga en tiempo real para datos de la familia activa o planificador individual (Hot Reload)
+    let data_channel: any = null;
+
+    if (profile?.active_family_id) {
+      data_channel = supabase
+        .channel(`family_${profile.active_family_id}_${Date.now()}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'meal_plans',
+            filter: `family_id=eq.${profile.active_family_id}`
+          },
+          () => {
+            planner_ref.current.load_planner_data(profile.active_family_id!, user.id);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'recipe_suggestions',
+            filter: `family_id=eq.${profile.active_family_id}`
+          },
+          () => {
+            suggestions_handler_ref.current.load_suggestions_data(profile.active_family_id!, user?.id);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'recipe_suggestion_votes'
+          },
+          () => {
+            suggestions_handler_ref.current.load_suggestions_data(profile.active_family_id!, user?.id);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'family_units',
+            filter: `id=eq.${profile.active_family_id}`
+          },
+          () => {
+            load_family_data_ref.current(profile.active_family_id!);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'pantry',
+            filter: `family_id=eq.${profile.active_family_id}`
+          },
+          () => {
+            pantry_ref.current.load_pantry_data(profile.active_family_id!);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'shopping_list',
+            filter: `family_id=eq.${profile.active_family_id}`
+          },
+          () => {
+            shopping_ref.current.load_shopping_data(profile.active_family_id!);
+          }
+        )
+        .subscribe();
+    } else {
+      data_channel = supabase
+        .channel(`user_plan_${user.id}_${Date.now()}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'meal_plans',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            planner_ref.current.load_planner_data(null, user.id);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'pantry',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            pantry_ref.current.load_pantry_data(null, user.id);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'shopping_list',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            shopping_ref.current.load_shopping_data(null, user.id);
+          }
+        )
+        .subscribe();
+    }
 
     return () => {
       supabase.removeChannel(notifications_channel);
-      supabase.removeChannel(family_data_channel);
+      if (data_channel) {
+        supabase.removeChannel(data_channel);
+      }
+      if (appStateListener) {
+        appStateListener.remove();
+      }
     };
   }, [supabase_connected, user?.id, profile?.active_family_id]);
 
@@ -536,6 +686,19 @@ export const use_global_state = () => {
     }
     await planner.handle_assign_recipe(day, type, slot_index, recipe_id);
     set_assigning_meal(null);
+  };
+
+  const handle_remove_assigned_recipe = async (
+    day: number,
+    type: MealType,
+    slot_index: number
+  ): Promise<void> => {
+    const role = get_current_role();
+    if (profile?.active_family_id && role === 'miembro') {
+      trigger_push("Permiso Denegado 🛑", "Solo el cocinitas puede borrar platos del menú.");
+      return;
+    }
+    await planner.handle_remove_assigned_recipe(day, type, slot_index);
   };
 
   return {
@@ -579,7 +742,7 @@ export const use_global_state = () => {
     handle_remove_meal_slot: planner.handle_remove_meal_slot,
     handle_move_meal_slot: planner.handle_move_meal_slot,
     handle_assign_recipe,
-    handle_remove_assigned_recipe: planner.handle_remove_assigned_recipe,
+    handle_remove_assigned_recipe,
     get_selectable_recipes: () => recipes_handler.get_selectable_recipes(assigning_meal, pantry.get_pantry_match_info),
     handle_add_recipe: recipes_handler.handle_add_recipe,
     handle_login: auth.handle_login,

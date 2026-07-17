@@ -4,13 +4,11 @@ import local_recipes from '../recipesData.json';
 import { get_supabase_client } from '../services/supabase_client';
 
 interface UseRecipesParams {
-  supabase_connected: boolean;
   trigger_push: (title: string, message: string) => void;
   get_recipe_votes?: (recipeId: number) => number;
 }
 
 export const use_recipes = ({
-  supabase_connected,
   trigger_push,
   get_recipe_votes
 }: UseRecipesParams) => {
@@ -27,12 +25,11 @@ export const use_recipes = ({
   });
 
   const load_recipes = async (): Promise<void> => {
-    if (!supabase_connected) {
+    const supabase = get_supabase_client();
+    if (!supabase) {
       set_recipes(local_recipes as Recipe[]);
       return;
     }
-    const supabase = get_supabase_client();
-    if (!supabase) return;
     try {
       const { data: db_recipes, error } = await supabase.from('recipes').select('*');
       if (!error && db_recipes) {

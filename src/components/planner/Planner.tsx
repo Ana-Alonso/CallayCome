@@ -12,11 +12,10 @@ import {
   CardContainer,
   TitleH2,
 } from "../common";
-import type { MealPlanDay, Recipe, CookRecipeConfig } from "../../types";
+import type { MealPlanDay, Recipe, CookRecipeConfig, RecipeSuggestion, PantryItem, Profile } from "../../types";
 import { useState, useEffect } from "react";
 import { SuggestionsDialog } from "./SuggestionsDialog";
 import { RecipeDetailDialog } from "./RecipeDetailDialog";
-import { use_global_state } from "../../hooks/use_global_state";
 import { format_date_display } from "../../utils/planner_helpers";
 import { Dialogo } from "../common/Dialogo";
 import { Box } from "../common/Box";
@@ -63,6 +62,13 @@ interface PlannerProps {
   show_quejometro: boolean;
   set_show_quejometro: (val: boolean) => void;
   cooked_days: number[];
+  suggestions?: RecipeSuggestion[];
+  handle_approve_suggestion?: (id: number) => Promise<void>;
+  handle_reject_suggestion?: (id: number) => Promise<void>;
+  handle_vote_suggestion?: (id: number, vote: "like" | "dislike") => Promise<void>;
+  get_panic_recipe?: () => { recipe: Recipe; missing_count: number; pct: number } | null;
+  pantry_items?: PantryItem[];
+  profile?: Profile | null;
 }
 
 export const Planner = ({
@@ -89,6 +95,13 @@ export const Planner = ({
   show_quejometro,
   set_show_quejometro,
   cooked_days,
+  suggestions = [],
+  handle_approve_suggestion = async () => {},
+  handle_reject_suggestion = async () => {},
+  handle_vote_suggestion = async () => {},
+  get_panic_recipe = () => null,
+  pantry_items = [],
+  profile = null,
 }: PlannerProps) => {
   const is_member = current_role === "miembro";
   const [mostrar_sugerencias, set_mostrar_sugerencias] = useState(false);
@@ -126,16 +139,6 @@ export const Planner = ({
   }, [confirmar_cocinado_dia, meal_plan]);
   const [lavaplatos, set_lavaplatos] = useState<string | null>(null);
   const [max_complaints, set_max_complaints] = useState<number>(0);
-
-  const {
-    suggestions,
-    handle_approve_suggestion,
-    handle_reject_suggestion,
-    handle_vote_suggestion,
-    get_panic_recipe,
-    pantry_items,
-    profile
-  } = use_global_state();
 
   useEffect(() => {
     if (profile?.active_family_id) {
@@ -212,11 +215,13 @@ export const Planner = ({
 
   const current_day = get_current_planner_day();
 
+  const is_android = typeof window !== 'undefined' && (window as any).Capacitor?.getPlatform() === 'android';
+
   return (
     <PageContainer>
-      <PlannerHeader>
+      <PlannerHeader style={is_android ? { flexDirection: 'column', alignItems: 'flex-start', gap: 12, marginBottom: 16 } : undefined}>
         <PlannerTitle>Planificación 30 Días</PlannerTitle>
-        <FlexRow style={{ gap: 8 }}>
+        <FlexRow style={is_android ? { gap: 8, width: '100%', flexWrap: 'wrap' } : { gap: 8 }}>
           <Boton
             texto="¡Pánico! 🚨"
             on_click={handle_panic_click}
@@ -303,15 +308,17 @@ export const Planner = ({
               />
               <span>Ocultar desayunos</span>
             </label>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
-              <input
-                type="checkbox"
-                checked={show_quejometro}
-                onChange={(e) => set_show_quejometro(e.target.checked)}
-                style={{ accentColor: '#2196f3', cursor: 'pointer' }}
-              />
-              <span>Mostrar quejímetro</span>
-            </label>
+            {profile?.active_family_id && (
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
+                <input
+                  type="checkbox"
+                  checked={show_quejometro}
+                  onChange={(e) => set_show_quejometro(e.target.checked)}
+                  style={{ accentColor: '#2196f3', cursor: 'pointer' }}
+                />
+                <span>Mostrar quejímetro</span>
+              </label>
+            )}
           </FlexRow>
           {current_day && (
             <span style={{ fontSize: 14, color: '#4caf50', fontWeight: 'bold' }}>
@@ -321,7 +328,7 @@ export const Planner = ({
         </FlexRow>
         
         {/* Dishwasher & NFC Info */}
-        {show_quejometro && (lavaplatos || current_day) && (
+        {show_quejometro && profile?.active_family_id && (lavaplatos || current_day) && (
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -336,13 +343,9 @@ export const Planner = ({
               <span style={{ fontSize: 13, color: '#ef5350', fontWeight: 600 }}>
                 🧼 Lavaplatos oficial hoy: <span style={{ textDecoration: 'underline' }}>{lavaplatos}</span> (¡por tener {max_complaints} quejas!)
               </span>
-            ) : profile?.active_family_id ? (
+            ) : (
               <span style={{ fontSize: 13, color: '#81c784', fontWeight: 500 }}>
                 🧼 ¡Nadie se ha quejado! Todos a salvo de fregar hoy.
-              </span>
-            ) : (
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
-                🧼 Modo local: Te toca fregar a ti.
               </span>
             )}
           </div>
@@ -408,6 +411,7 @@ export const Planner = ({
             }
             on_view_recipe={handle_view_recipe}
             can_add_slots={!is_member}
+            can_clear_slots={!is_member}
             destacado={day_plan.day === current_day}
             on_cook={() => set_confirmar_cocinado_dia(day_plan.day)}
             can_cook={!is_member}

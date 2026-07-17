@@ -13,6 +13,7 @@ interface DayCardProps {
   on_move_slot: (type: 'desayuno' | 'comida' | 'cena', slot_index: number, direction: 'up' | 'down') => void;
   on_view_recipe?: (recipe_id: number) => void;
   can_add_slots: boolean;
+  can_clear_slots?: boolean;
   destacado?: boolean;
   on_cook?: () => void;
   can_cook?: boolean;
@@ -30,6 +31,7 @@ export const DayCard = ({
   on_move_slot,
   on_view_recipe,
   can_add_slots,
+  can_clear_slots = true,
   destacado,
   on_cook,
   can_cook,
@@ -66,7 +68,7 @@ export const DayCard = ({
       )}
 
       <DayMeals>
-        {((hide_breakfasts ? ['comida', 'cena'] : ['desayuno', 'comida', 'cena']) as const).map(type => (
+        {((hide_breakfasts ? ['comida', 'cena'] : ['desayuno', 'comida', 'cena']) as ('desayuno' | 'comida' | 'cena')[]).map(type => (
           <div key={type} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {plan_dia[type].map((slot_recipe_id, slot_index) => {
               const recipe = get_recipe(slot_recipe_id);
@@ -78,6 +80,7 @@ export const DayCard = ({
                     on_click={() => on_slot_click(type, slot_index)}
                     on_clear={(e) => on_slot_clear(type, slot_index, e)}
                     on_view_recipe={recipe && on_view_recipe ? () => on_view_recipe(recipe.id) : undefined}
+                    can_clear={can_clear_slots}
                   />
                   {can_add_slots && (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

@@ -4,13 +4,16 @@ let supabase_url: string = (import.meta.env.VITE_SUPABASE_URL as string) || '';
 let supabase_anon_key: string = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
 
 if (typeof window !== 'undefined') {
-  const saved_url: string | null = localStorage.getItem('supabase_url');
-  const saved_key: string | null = localStorage.getItem('supabase_key');
-  if (saved_url) {
-    supabase_url = saved_url;
-  }
-  if (saved_key) {
-    supabase_anon_key = saved_key;
+  const is_native = (window as any).Capacitor !== undefined && (window as any).Capacitor.isNativePlatform();
+  if (!is_native) {
+    const saved_url: string | null = localStorage.getItem('supabase_url');
+    const saved_key: string | null = localStorage.getItem('supabase_key');
+    if (saved_url && saved_url.startsWith('http') && saved_url !== 'undefined' && saved_url !== 'null') {
+      supabase_url = saved_url;
+    }
+    if (saved_key && saved_key !== 'undefined' && saved_key !== 'null' && saved_key.length > 20) {
+      supabase_anon_key = saved_key;
+    }
   }
 }
 
