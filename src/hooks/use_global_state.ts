@@ -85,6 +85,11 @@ export const use_global_state = () => {
   const [start_date, set_start_date] = useState<string | null>(() => {
     return localStorage.getItem('calla_y_come_start_date') || null;
   });
+  const [notifications_history, set_notifications_history] = useState<Array<{ id: number; title: string; body: string; date: string }>>(() => {
+    const cached = localStorage.getItem('notifications_history');
+    return cached ? JSON.parse(cached) : [];
+  });
+  const [unread_notif_count, set_unread_notif_count] = useState<number>(0);
 
   // Live refs — always point to the latest state even inside stale closures
   const meal_plan_ref = useRef<MealPlanDay[]>(meal_plan);
@@ -343,15 +348,52 @@ export const use_global_state = () => {
         title: custom_event.detail.title,
         body: custom_event.detail.body
       };
-      set_toast_messages(prev => [...prev, new_toast]);
+      
+      // Limit active floating toasts to a maximum of 3
+      set_toast_messages(prev => {
+        const next = [...prev, new_toast];
+        if (next.length > 3) {
+          return next.slice(next.length - 3);
+        }
+        return next;
+      });
+
       setTimeout(() => {
         set_toast_messages(prev => prev.filter(t => t.id !== new_toast.id));
       }, 4000);
+
+      // Prepend to persistent history
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const dateStr = now.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+      const newNotifItem = {
+        id: Date.now() + Math.random(),
+        title: custom_event.detail.title,
+        body: custom_event.detail.body,
+        date: `${dateStr} ${timeStr}`
+      };
+
+      set_notifications_history(prev => {
+        const next = [newNotifItem, ...prev].slice(0, 30); // keep last 30
+        localStorage.setItem('notifications_history', JSON.stringify(next));
+        return next;
+      });
+      set_unread_notif_count(c => c + 1);
     };
 
     window.addEventListener('in-app-notification', handle_notification);
     return () => window.removeEventListener('in-app-notification', handle_notification);
   }, []);
+
+  const handle_clear_notifications = (): void => {
+    set_notifications_history([]);
+    localStorage.removeItem('notifications_history');
+    set_unread_notif_count(0);
+  };
+
+  const handle_open_notification_center = (): void => {
+    set_unread_notif_count(0);
+  };
 
   // Sync to local storage
   use_local_storage_sync(pantry_items, shopping_items, meal_plan, hide_breakfasts, show_quejometro, cooked_days);
@@ -540,6 +582,10 @@ export const use_global_state = () => {
     handle_change_start_date: planner.handle_change_start_date,
     handle_cook_day: (day: number, configs: CookRecipeConfig[]) => planner.handle_cook_day(day, configs, recipes_ref.current),
     get_panic_recipe: planner.get_panic_recipe,
+    notifications_history,
+    unread_notif_count,
+    handle_clear_notifications,
+    handle_open_notification_center,
     get_nfc_payload: () => planner.get_nfc_payload(recipes_handler.recipes),
     handle_add_custom_shopping_item: shopping.handle_add_custom_shopping_item,
     hide_breakfasts,

@@ -7,7 +7,9 @@ import {
   AlertTriangle,
   Search,
   PlusCircle,
-  Users
+  Users,
+  Bell,
+  Trash2
 } from 'lucide-react';
 
 import { use_global_state } from './hooks/use_global_state';
@@ -106,10 +108,15 @@ export const App = () => {
     show_quejometro,
     set_show_quejometro,
     cooked_days,
-    get_panic_recipe
+    get_panic_recipe,
+    notifications_history,
+    unread_notif_count,
+    handle_clear_notifications,
+    handle_open_notification_center
   } = use_global_state();
 
   const [mostrar_modo_nevera, set_mostrar_modo_nevera] = useState(false);
+  const [mostrar_centro_notif, set_mostrar_centro_notif] = useState(false);
   const [lavaplatos, set_lavaplatos] = useState<string | null>(null);
   const [max_complaints, set_max_complaints] = useState<number>(0);
 
@@ -302,6 +309,48 @@ export const App = () => {
           <LogoIcon>🍳</LogoIcon>
           <AppTitle>Calla y Come</AppTitle>
         </AppLogo>
+
+        <Box 
+          onClick={() => {
+            handle_open_notification_center();
+            set_mostrar_centro_notif(true);
+          }}
+          style={{
+            position: 'relative',
+            cursor: 'pointer',
+            padding: '8px',
+            borderRadius: '12px',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background-color 0.2s',
+            border: '1px solid rgba(255, 255, 255, 0.08)'
+          }}
+        >
+          <Bell size={20} style={{ color: 'rgba(255,255,255,0.8)' }} />
+          {unread_notif_count > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: -4,
+              right: -4,
+              backgroundColor: '#f26841',
+              color: '#ffffff',
+              borderRadius: '50%',
+              fontSize: '10px',
+              fontWeight: 'bold',
+              minWidth: '16px',
+              height: '16px',
+              padding: '0 4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 10px rgba(242, 104, 65, 0.5)'
+            }}>
+              {unread_notif_count}
+            </span>
+          )}
+        </Box>
       </HeaderContainer>
 
       <NavContainer>
@@ -497,6 +546,72 @@ export const App = () => {
             </Box>
           </>
         )}
+      </Dialogo>
+
+      <Dialogo
+        abierto={mostrar_centro_notif}
+        on_close={() => set_mostrar_centro_notif(false)}
+        titulo="🔔 Centro de Notificaciones"
+      >
+        <Box style={{ minWidth: "320px", maxWidth: "450px", padding: '8px' }}>
+          {notifications_history.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+              <button
+                onClick={handle_clear_notifications}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: '#ef5350',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: 'bold',
+                  padding: '4px 8px',
+                  borderRadius: 6,
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 83, 80, 0.1)'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <Trash2 size={14} />
+                Limpiar Historial
+              </button>
+            </div>
+          )}
+
+          <div style={{ maxHeight: '350px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {notifications_history.length === 0 ? (
+              <Box style={{ padding: '24px 12px', textAlign: 'center' }}>
+                <Bell size={32} style={{ color: 'rgba(255,255,255,0.2)', marginBottom: 8 }} />
+                <TextMuted style={{ fontSize: 13 }}>No tienes notificaciones recientes.</TextMuted>
+              </Box>
+            ) : (
+              notifications_history.map((notif) => (
+                <Box
+                  key={notif.id}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 12,
+                    backgroundColor: '#13131f',
+                    border: '1px solid #1f1f2e',
+                    borderLeft: '4px solid #f26841',
+                    textAlign: 'left'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 'bold', color: '#ffffff' }}>{notif.title}</span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>{notif.date}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4 }}>
+                    {notif.body}
+                  </div>
+                </Box>
+              ))
+            )}
+          </div>
+        </Box>
       </Dialogo>
 
       {mostrar_modo_nevera && (
