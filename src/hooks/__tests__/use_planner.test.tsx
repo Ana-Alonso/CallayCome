@@ -152,4 +152,42 @@ describe('use_planner hook', () => {
     expect(chain.eq).toHaveBeenCalledWith('user_id', 'user-789');
     expect(chain.is).toHaveBeenCalledWith('family_id', null);
   });
+
+  test('handle_auto_generate_plan selects weighted recipes based on votes', async () => {
+    const mockDb = createSupabaseMock();
+    vi.mocked(get_supabase_client).mockReturnValue(mockDb as any);
+
+    const mockGetRecipeVotes = vi.fn((id: number) => {
+      if (id === 1) return 100; // highly weighted
+      return 0;
+    });
+
+    const testRecipes = [
+      { id: 1, name: 'Desayuno Fav', meal_type: 'desayuno', ingredients: [] },
+      { id: 2, name: 'Desayuno Normal', meal_type: 'desayuno', ingredients: [] },
+      { id: 3, name: 'Comida', meal_type: 'comida', ingredients: [] },
+      { id: 4, name: 'Cena', meal_type: 'cena', ingredients: [] }
+    ];
+
+    const { result } = renderHook(() => use_planner({
+      meal_plan: [],
+      set_meal_plan: mockSetMealPlan,
+      start_date: '2026-07-17',
+      set_start_date: mockSetStartDate,
+      pantry_items: [],
+      set_pantry_items: mockSetPantryItems,
+      shopping_items: [],
+      profile: mockIndividualProfile,
+      trigger_push: mockTriggerPush,
+      get_pantry_match_info: mockGetPantryMatchInfo,
+      get_filtered_recipes: mockGetFilteredRecipes,
+      get_recipe_votes: mockGetRecipeVotes,
+      user: mockUser
+    }));
+
+    await result.current.handle_auto_generate_plan(testRecipes as any);
+
+    expect(mockGetRecipeVotes).toHaveBeenCalled();
+    expect(mockSetMealPlan).toHaveBeenCalled();
+  });
 });

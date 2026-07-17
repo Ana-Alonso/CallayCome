@@ -19,6 +19,7 @@ interface UsePlannerParams {
   get_pantry_match_info: (recipe: Recipe) => { matches: number; pct: number };
   get_filtered_recipes: () => Recipe[];
   increment_recipe_vote?: (recipeId: number) => void;
+  get_recipe_votes?: (recipeId: number) => number;
   set_cooked_days?: React.Dispatch<React.SetStateAction<number[]>>;
   user: User | null;
 }
@@ -36,6 +37,7 @@ export const use_planner = ({
   get_pantry_match_info,
   get_filtered_recipes,
   increment_recipe_vote,
+  get_recipe_votes,
   set_cooked_days,
   user
 }: UsePlannerParams) => {
@@ -78,11 +80,25 @@ export const use_planner = ({
       return;
     }
 
+    const get_weighted_random_recipe = (recipesList: Recipe[]): Recipe => {
+      const weights = recipesList.map(r => (get_recipe_votes ? get_recipe_votes(r.id) : 0) + 1);
+      const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+      let randomVal = Math.random() * totalWeight;
+      
+      for (let idx = 0; idx < recipesList.length; idx++) {
+        randomVal -= weights[idx];
+        if (randomVal <= 0) {
+          return recipesList[idx];
+        }
+      }
+      return recipesList[0];
+    };
+
     const new_plan: MealPlanDay[] = Array.from({ length: 30 }, (_, i) => {
       const dayNum = i + 1;
-      const des = list_desayunos[Math.floor(Math.random() * list_desayunos.length)].id;
-      const com = list_comidas[Math.floor(Math.random() * list_comidas.length)].id;
-      const cen = list_cenas[Math.floor(Math.random() * list_cenas.length)].id;
+      const des = get_weighted_random_recipe(list_desayunos).id;
+      const com = get_weighted_random_recipe(list_comidas).id;
+      const cen = get_weighted_random_recipe(list_cenas).id;
       return {
         day: dayNum,
         desayuno: [des],

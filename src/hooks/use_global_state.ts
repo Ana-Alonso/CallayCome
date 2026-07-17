@@ -90,6 +90,7 @@ export const use_global_state = () => {
     return cached ? JSON.parse(cached) : [];
   });
   const [unread_notif_count, set_unread_notif_count] = useState<number>(0);
+  const [recipe_weights, set_recipe_weights] = useState<Record<number, number>>({});
 
   // Live refs — always point to the latest state even inside stale closures
   const meal_plan_ref = useRef<MealPlanDay[]>(meal_plan);
@@ -209,7 +210,8 @@ export const use_global_state = () => {
           pantry.load_pantry_data(familyId),
           shopping.load_shopping_data(familyId),
           planner.load_planner_data(familyId, userId || user?.id),
-          suggestions_handler.load_suggestions_data(familyId, userId || user?.id)
+          suggestions_handler.load_suggestions_data(familyId, userId || user?.id),
+          load_recipe_weights(familyId, userId || user?.id)
         ]);
       } else {
         // Individual User Mode (No active family)
@@ -220,7 +222,8 @@ export const use_global_state = () => {
           recipes_handler.load_recipes(),
           pantry.load_pantry_data(null, userId || user?.id),
           shopping.load_shopping_data(null, userId || user?.id),
-          planner.load_planner_data(null, userId || user?.id)
+          planner.load_planner_data(null, userId || user?.id),
+          load_recipe_weights(null, userId || user?.id)
         ]);
         set_suggestions([]);
       }
@@ -230,27 +233,74 @@ export const use_global_state = () => {
   };
 
   // --- Recipe popularity voting helper functions ---
-  const get_recipe_votes = (recipeId: number): number => {
-    const votesStr = localStorage.getItem('calla_y_come_recipe_votes');
-    if (!votesStr) return 0;
+  const load_recipe_weights = async (familyId: string | null, userId?: string | null): Promise<void> => {
+    const supabase = get_supabase_client();
+    if (!supabase) return;
     try {
-      const votes = JSON.parse(votesStr);
-      return votes[recipeId] || 0;
-    } catch {
-      return 0;
+      let query = supabase.from('recipe_weights').select('*');
+      if (familyId) {
+        query = query.eq('family_id', familyId);
+      } else if (userId) {
+        query = query.eq('user_id', userId).is('family_id', null);
+      } else {
+        return;
+      }
+      const { data, error } = await query;
+      if (!error && data) {
+        const weights: Record<number, number> = {};
+        data.forEach((row: any) => {
+          weights[row.recipe_id] = row.weight;
+        });
+        set_recipe_weights(weights);
+        localStorage.setItem('calla_y_come_recipe_votes', JSON.stringify(weights));
+      }
+    } catch (err) {
+      console.error('Error loading recipe weights:', err);
     }
   };
 
-  const increment_recipe_vote = (recipeId: number): void => {
-    const votesStr = localStorage.getItem('calla_y_come_recipe_votes');
-    let votes: Record<number, number> = {};
-    if (votesStr) {
+  const get_recipe_votes = (recipeId: number): number => {
+    return recipe_weights[recipeId] || 0;
+  };
+
+  const increment_recipe_vote = async (recipeId: number): Promise<void> => {
+    const current_weight = recipe_weights[recipeId] || 0;
+    const next_weight = current_weight + 1;
+
+    set_recipe_weights(prev => {
+      const next = { ...prev, [recipeId]: next_weight };
+      localStorage.setItem('calla_y_come_recipe_votes', JSON.stringify(next));
+      return next;
+    });
+
+    const supabase = get_supabase_client();
+    if (supabase && (profile?.active_family_id || user?.id)) {
       try {
-        votes = JSON.parse(votesStr);
-      } catch {}
+        let query = supabase.from('recipe_weights').select('*').eq('recipe_id', recipeId);
+        if (profile?.active_family_id) {
+          query = query.eq('family_id', profile.active_family_id);
+        } else {
+          query = query.eq('user_id', user?.id).is('family_id', null);
+        }
+        const { data } = await query;
+        if (data && data.length > 0) {
+          await supabase
+            .from('recipe_weights')
+            .update({ weight: data[0].weight + 1 })
+            .eq('id', data[0].id);
+        } else {
+          const insertRow: any = { recipe_id: recipeId, weight: 1 };
+          if (profile?.active_family_id) {
+            insertRow.family_id = profile.active_family_id;
+          } else {
+            insertRow.user_id = user?.id;
+          }
+          await supabase.from('recipe_weights').insert([insertRow]);
+        }
+      } catch (err) {
+        console.error('Error updating recipe weight in Supabase:', err);
+      }
     }
-    votes[recipeId] = (votes[recipeId] || 0) + 1;
-    localStorage.setItem('calla_y_come_recipe_votes', JSON.stringify(votes));
   };
 
   // --- Sub-hooks Instantiations ---
@@ -301,6 +351,7 @@ export const use_global_state = () => {
     get_pantry_match_info: pantry.get_pantry_match_info,
     get_filtered_recipes: recipes_handler.get_filtered_recipes,
     increment_recipe_vote,
+    get_recipe_votes,
     set_cooked_days,
     user
   });
