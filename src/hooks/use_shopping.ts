@@ -2,6 +2,7 @@ import type { ShoppingItem, PantryItem, Recipe, MealPlanDay, Profile } from '../
 import { get_supabase_client } from '../services/supabase_client';
 import type { User } from '@supabase/supabase-js';
 import { get_current_planner_day, get_active_week_info } from '../utils/planner_helpers';
+import { normalize_unit } from '../utils/unit_converter';
 
 interface UseShoppingParams {
   shopping_items: ShoppingItem[];
@@ -79,10 +80,18 @@ export const use_shopping = ({
         if (recipe && recipe.ingredients) {
           recipe.ingredients.forEach(ing => {
             const key = ing.name.toLowerCase().trim();
+            const norm = normalize_unit(ing.quantity, ing.unit);
+
             if (required[key]) {
-              required[key].quantity += ing.quantity;
+              const storedNorm = normalize_unit(required[key].quantity, required[key].unit);
+              if (storedNorm.baseUnit === norm.baseUnit) {
+                required[key].quantity = storedNorm.value + norm.value;
+                required[key].unit = storedNorm.baseUnit;
+              } else {
+                required[key].quantity += ing.quantity;
+              }
             } else {
-              required[key] = { quantity: ing.quantity, unit: ing.unit };
+              required[key] = { quantity: norm.value, unit: norm.baseUnit };
             }
           });
         }

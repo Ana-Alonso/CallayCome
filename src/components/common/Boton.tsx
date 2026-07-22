@@ -2,13 +2,14 @@ import Button from '@mui/material/Button';
 
 interface BotonProps {
   texto: string;
-  on_click?: () => void;
+  on_click?: () => void | Promise<void>;
   tipo?: 'button' | 'submit';
   variante?: 'text' | 'outlined' | 'contained';
   color?: 'inherit' | 'primary' | 'secondary' | 'success' | 'error' | 'info' | 'warning';
   clase_css?: string;
   deshabilitado?: boolean;
   icono?: React.ReactNode;
+  style?: React.CSSProperties;
 }
 
 export const Boton = ({
@@ -19,7 +20,8 @@ export const Boton = ({
   color = 'primary',
   clase_css = '',
   deshabilitado = false,
-  icono
+  icono,
+  style
 }: BotonProps) => {
   return (
     <Button
@@ -30,6 +32,7 @@ export const Boton = ({
       className={clase_css}
       disabled={deshabilitado}
       startIcon={icono}
+      style={style}
     >
       {texto}
     </Button>

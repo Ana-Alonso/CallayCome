@@ -8,6 +8,7 @@ interface CampoTextoProps {
   marcador_posicion?: string;
   requerido?: boolean;
   clase_css?: string;
+  inputProps?: any;
 }
 
 export const CampoTexto = ({
@@ -17,7 +18,8 @@ export const CampoTexto = ({
   tipo = 'text',
   marcador_posicion = '',
   requerido = false,
-  clase_css = ''
+  clase_css = '',
+  inputProps
 }: CampoTextoProps) => {
   const handle_change = (e: React.ChangeEvent<HTMLInputElement>): void => {
     on_change(e.target.value);
@@ -34,6 +36,7 @@ export const CampoTexto = ({
       className={clase_css}
       fullWidth
       variant="outlined"
+      {...({ inputProps } as any)}
     />
   );
 };

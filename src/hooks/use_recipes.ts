@@ -15,6 +15,7 @@ export const use_recipes = ({
   const [recipes, set_recipes] = useState<Recipe[]>(local_recipes as Recipe[]);
   const [recipe_search, set_recipe_search] = useState<string>('');
   const [is_filter_modal_open, set_is_filter_modal_open] = useState<boolean>(false);
+  const [db_ingredients, set_db_ingredients] = useState<string[]>([]);
   const [active_filters, set_filters] = useState<FilterState>({
     ingredients_count: 'all',
     allergies: [],
@@ -24,6 +25,106 @@ export const use_recipes = ({
     health: 'all'
   });
 
+  const map_db_recipe = (row: any): Recipe => {
+    return {
+      id: row.id,
+      name: row.name,
+      meal_type: row.meal_type,
+      price: row.price,
+      difficulty: row.difficulty,
+      health: row.health,
+      diet_type: row.diet_type,
+      allergens: row.allergens || [],
+      instructions: row.instructions || [],
+      ingredients: (row.recipe_ingredients || []).map((ri: any) => ({
+        name: ri.ingredients?.name || '',
+        quantity: Number(ri.quantity),
+        unit: ri.unit
+      }))
+    };
+  };
+
+  const load_db_ingredients = async (): Promise<void> => {
+    const supabase = get_supabase_client();
+    if (!supabase) return;
+    try {
+      const { data, error } = await supabase.from('ingredients').select('name').order('name');
+      if (!error && data) {
+        set_db_ingredients(data.map((i: any) => i.name));
+      }
+    } catch (e) {
+      console.error('Error loading db ingredients:', e);
+    }
+  };
+
+  const insert_recipe_relational = async (recipe: Omit<Recipe, 'id'>, supabase: any): Promise<number> => {
+    // 1. Insert details into public.recipes
+    const { data: new_recipe, error: recipe_error } = await supabase
+      .from('recipes')
+      .insert([{
+        name: recipe.name,
+        meal_type: recipe.meal_type,
+        price: recipe.price,
+        difficulty: recipe.difficulty,
+        health: recipe.health,
+        diet_type: recipe.diet_type,
+        allergens: recipe.allergens || [],
+        instructions: recipe.instructions || []
+      }])
+      .select()
+      .single();
+
+    if (recipe_error || !new_recipe) {
+      throw new Error(recipe_error?.message || "Error al insertar la receta");
+    }
+
+    const recipeId = new_recipe.id;
+
+    // 2. Loop through ingredients, insert/re-use in ingredients table, and link in recipe_ingredients
+    for (const ing of recipe.ingredients) {
+      let ingredient_id: number;
+      
+      // Try to find if the ingredient already exists in public.ingredients
+      const { data: existing_ing } = await supabase
+        .from('ingredients')
+        .select('id')
+        .eq('name', ing.name.trim())
+        .maybeSingle();
+
+      if (existing_ing) {
+        ingredient_id = existing_ing.id;
+      } else {
+        // Insert new ingredient
+        const { data: new_ing, error: ing_error } = await supabase
+          .from('ingredients')
+          .insert([{ name: ing.name.trim() }])
+          .select()
+          .single();
+
+        if (ing_error || !new_ing) {
+          throw new Error(`Error al registrar el ingrediente ${ing.name}: ${ing_error?.message}`);
+        }
+        ingredient_id = new_ing.id;
+      }
+
+      // Link it in recipe_ingredients
+      const { error: link_error } = await supabase
+        .from('recipe_ingredients')
+        .insert([{
+          recipe_id: recipeId,
+          ingredient_id: ingredient_id,
+          quantity: ing.quantity,
+          unit: ing.unit
+        }]);
+
+      if (link_error) {
+        throw new Error(`Error al vincular el ingrediente ${ing.name}: ${link_error.message}`);
+      }
+    }
+
+    return recipeId;
+  };
+
   const load_recipes = async (): Promise<void> => {
     const supabase = get_supabase_client();
     if (!supabase) {
@@ -31,20 +132,26 @@ export const use_recipes = ({
       return;
     }
     try {
-      const { data: db_recipes, error } = await supabase.from('recipes').select('*');
+      const { data: db_recipes, error } = await supabase
+        .from('recipes')
+        .select('*, recipe_ingredients(*, ingredients(*))');
+
       if (!error && db_recipes) {
         if (db_recipes.length === 0) {
           for (const r of local_recipes) {
-            await supabase.from('recipes').insert([{ recipe_data: r }]);
+            await insert_recipe_relational(r as any, supabase);
           }
-          const { data: refreshed } = await supabase.from('recipes').select('*');
+          const { data: refreshed } = await supabase
+            .from('recipes')
+            .select('*, recipe_ingredients(*, ingredients(*))');
           if (refreshed) {
-            set_recipes(refreshed.map((row: any) => ({ ...row.recipe_data, id: row.id })));
+            set_recipes(refreshed.map((row: any) => map_db_recipe(row)));
           }
         } else {
-          set_recipes(db_recipes.map((row: any) => ({ ...row.recipe_data, id: row.id })));
+          set_recipes(db_recipes.map((row: any) => map_db_recipe(row)));
         }
       }
+      await load_db_ingredients();
     } catch (e) {
       console.error(e);
     }
@@ -162,20 +269,13 @@ export const use_recipes = ({
       return;
     }
     try {
-      const { data, error } = await supabase
-        .from('recipes')
-        .insert([{ recipe_data: recipe }])
-        .select()
-        .single();
-
-      if (!error && data) {
-        set_recipes(prev => [...prev, { ...data.recipe_data, id: data.id }]);
-        trigger_push("Receta Añadida 🍳", `${recipe.name} se ha guardado en el catálogo.`);
-      } else {
-        trigger_push("Error al guardar receta", error?.message || "Error desconocido");
-      }
+      const new_id = await insert_recipe_relational(recipe, supabase);
+      set_recipes(prev => [...prev, { ...recipe, id: new_id }]);
+      await load_db_ingredients();
+      trigger_push("Receta Añadida 🍳", `${recipe.name} se ha guardado en el catálogo.`);
     } catch (err: any) {
-      trigger_push("Error", err.message);
+      console.error('Failed to add recipe:', err);
+      trigger_push("Error al guardar receta", err.message || "Error desconocido");
     }
   };
 
@@ -193,6 +293,8 @@ export const use_recipes = ({
     toggle_diet,
     get_filtered_recipes,
     get_selectable_recipes,
-    handle_add_recipe
+    handle_add_recipe,
+    db_ingredients,
+    load_db_ingredients
   };
 };

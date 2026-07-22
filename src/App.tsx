@@ -9,7 +9,8 @@ import {
   PlusCircle,
   Users,
   Bell,
-  Trash2
+  Trash2,
+  TrendingUp
 } from 'lucide-react';
 
 import { use_global_state } from './hooks/use_global_state';
@@ -21,6 +22,7 @@ import { ModoNevera } from './components/nevera/ModoNevera';
 import { Pantry } from './components/pantry/Pantry';
 import { ShoppingList } from './components/shopping/ShoppingList';
 import { AddRecipe } from './components/recipes/AddRecipe';
+import { BudgetTab } from './components/budget/BudgetTab';
 import { MiFamilia } from './components/family/MiFamilia';
 import { Auth } from './components/auth/Auth';
 import {
@@ -49,6 +51,16 @@ export const App = () => {
   const {
     active_tab,
     set_active_tab,
+    weekly_budget,
+    set_weekly_budget,
+    preferred_supermarket,
+    set_preferred_supermarket,
+    budget_filter_active,
+    set_budget_filter_active,
+    ingredient_mappings,
+    handle_save_mapping,
+    handle_delete_mapping,
+    calculate_recipe_cost,
     recipes,
     pantry_items,
     shopping_items,
@@ -116,7 +128,8 @@ export const App = () => {
     accessibility_options,
     update_accessibility,
     speak,
-    handle_delete_account
+    handle_delete_account,
+    db_ingredients
   } = use_global_state();
 
   const [mostrar_modo_nevera, set_mostrar_modo_nevera] = useState(false);
@@ -162,6 +175,8 @@ export const App = () => {
         set_active_tab('recetas');
       } else if (key === '5') {
         set_active_tab('familia');
+      } else if (key === '6') {
+        set_active_tab('presupuesto');
       } else if (active_tab === 'plan') {
         if (key === 'p') {
           window.dispatchEvent(new CustomEvent('hotkey-panic'));
@@ -392,6 +407,13 @@ export const App = () => {
           <Box component="span">Nueva Receta</Box>
         </NavTabButton>
         <NavTabButton
+          active={active_tab === 'presupuesto'}
+          onClick={() => { set_active_tab('presupuesto'); speak("Presupuesto Semanal"); }}
+        >
+          <TrendingUp />
+          <Box component="span">Presupuesto</Box>
+        </NavTabButton>
+        <NavTabButton
           active={active_tab === 'familia'}
           onClick={() => { set_active_tab('familia'); speak("Familia y Configuración"); }}
         >
@@ -455,7 +477,29 @@ export const App = () => {
       )}
 
       {active_tab === 'recetas' && (
-        <AddRecipe on_add={handle_add_recipe} />
+        <AddRecipe 
+          on_add={handle_add_recipe} 
+          handle_save_mapping={handle_save_mapping} 
+          db_ingredients={db_ingredients}
+        />
+      )}
+
+      {active_tab === 'presupuesto' && (
+        <BudgetTab
+          meal_plan={meal_plan}
+          recipes={recipes}
+          start_date={start_date}
+          weekly_budget={weekly_budget}
+          set_weekly_budget={set_weekly_budget}
+          preferred_supermarket={preferred_supermarket}
+          set_preferred_supermarket={set_preferred_supermarket}
+          ingredient_mappings={ingredient_mappings}
+          handle_save_mapping={handle_save_mapping}
+          handle_delete_mapping={handle_delete_mapping}
+          calculate_recipe_cost={calculate_recipe_cost}
+          budget_filter_active={budget_filter_active}
+          set_budget_filter_active={set_budget_filter_active}
+        />
       )}
 
       {active_tab === 'familia' && (
@@ -503,7 +547,7 @@ export const App = () => {
       >
         {assigning_meal && (
           <>
-            <Box className="assign-recipe-header">
+            <Box className="assign-recipe-header" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <Box className="form-group assign-recipe-search-container">
                 <input
                   type="text"
@@ -513,6 +557,17 @@ export const App = () => {
                   onChange={e => set_recipe_search(e.target.value)}
                 />
                 <Search className="search-icon-position" size={16} />
+              </Box>
+              <Box style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 4px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={budget_filter_active}
+                    onChange={e => set_budget_filter_active(e.target.checked)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  Ordenar por presupuesto ({preferred_supermarket === 'cheapest' ? 'más barato' : preferred_supermarket})
+                </label>
               </Box>
             </Box>
 
@@ -525,15 +580,15 @@ export const App = () => {
                   </Box>
                 </Box>
               ) : (
-                get_selectable_recipes().map(({ recipe, match_info, has_leftover }) => (
+                get_selectable_recipes().map(({ recipe, match_info, has_leftover, cost }: any) => (
                   <RecipeSelectCard
                     key={recipe.id}
                     onClick={() => handle_assign_recipe(recipe.id)}
                   >
                     <RecipeCardTop>
-                      <RecipeSelectTitle>
-                        {recipe.name}
-                        {has_leftover && (
+                      <RecipeSelectTitle style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{recipe.name}</span>
+                        {cost !== undefined && (
                           <span style={{
                             fontSize: 10,
                             fontWeight: 'bold',
@@ -541,9 +596,24 @@ export const App = () => {
                             backgroundColor: 'rgba(129,199,132,0.1)',
                             padding: '2px 6px',
                             borderRadius: 6,
-                            marginLeft: 8,
                             display: 'inline-block',
-                            verticalAlign: 'middle'
+                            verticalAlign: 'middle',
+                            border: '1px solid rgba(129,199,132,0.15)'
+                          }}>
+                            {cost.toFixed(2)} €
+                          </span>
+                        )}
+                        {has_leftover && (
+                          <span style={{
+                            fontSize: 10,
+                            fontWeight: 'bold',
+                            color: '#e5c158',
+                            backgroundColor: 'rgba(229,193,88,0.1)',
+                            padding: '2px 6px',
+                            borderRadius: 6,
+                            display: 'inline-block',
+                            verticalAlign: 'middle',
+                            border: '1px solid rgba(229,193,88,0.15)'
                           }}>
                             🍲 Sobras
                           </span>
@@ -555,7 +625,7 @@ export const App = () => {
                     </RecipeCardTop>
 
                     <RecipeIngredientsPreview>
-                      Ingredientes: {recipe.ingredients.map(i => i.name).join(', ')}
+                      Ingredientes: {recipe.ingredients.map((i: any) => i.name).join(', ')}
                     </RecipeIngredientsPreview>
 
                     <RecipeTagContainer>
@@ -669,7 +739,7 @@ export const App = () => {
         lineHeight: 1.4,
         marginTop: 'auto'
       }}>
-        💻 <strong>Atajos de teclado (PC):</strong> [1-5] Navegar | [P] Pánico | [N] Modo Nevera | [F] Filtros | [C] Recalcular compra
+        💻 <strong>Atajos de teclado (PC):</strong> [1-6] Navegar | [P] Pánico | [N] Modo Nevera | [F] Filtros | [C] Recalcular compra
       </div>
     </AppContainer>
   );

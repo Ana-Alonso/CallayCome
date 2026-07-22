@@ -63,7 +63,7 @@ describe('use_suggestions hook', () => {
         profiles: { display_name: 'Ana' },
         recipes: [
           {
-            recipe_data: { name: 'Lentejas de la abuela' }
+            name: 'Lentejas de la abuela'
           }
         ]
       }
@@ -105,7 +105,7 @@ describe('use_suggestions hook', () => {
         status: 'pendiente',
         profiles: { display_name: 'Luis' },
         recipes: {
-          recipe_data: { name: 'Sopa Caliente' }
+          name: 'Sopa Caliente'
         }
       }
     ];

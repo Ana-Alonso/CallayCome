@@ -96,3 +96,14 @@ export interface CookRecipeConfig {
   portions: number;
   leftovers: number;
 }
+
+export interface IngredientMapping {
+  id?: number;
+  ingredient_name: string;
+  product_name: string;
+  price: number;
+  package_qty: number;
+  package_unit: string;
+  supermarket_id: string;
+  reference_id?: string;
+}

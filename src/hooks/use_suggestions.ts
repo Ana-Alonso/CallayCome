@@ -324,7 +324,7 @@ export const use_suggestions = ({
             display_name
           ),
           recipes (
-            recipe_data
+            name
           )
         `)
         .eq('family_id', familyId)
@@ -373,8 +373,8 @@ export const use_suggestions = ({
             status: s.status as 'pendiente' | 'aprobado' | 'rechazado',
             user_display_name: s.profiles?.display_name || 'Miembro',
             recipe_name: (Array.isArray(s.recipes)
-                  ? s.recipes[0]?.recipe_data?.name
-                  : s.recipes?.recipe_data?.name) || recipe?.name || 'Receta',
+                  ? s.recipes[0]?.name
+                  : s.recipes?.name) || recipe?.name || 'Receta',
             likes_count: (votes_by_suggestion[Number(s.id)] || []).filter(v => v.vote === 'like').length,
             dislikes_count: (votes_by_suggestion[Number(s.id)] || []).filter(v => v.vote === 'dislike').length,
             my_vote: ((votes_by_suggestion[Number(s.id)] || []).find(v => v.user_id === userId)?.vote || null) as 'like' | 'dislike' | null

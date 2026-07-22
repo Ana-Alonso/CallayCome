@@ -1,5 +1,6 @@
 import type { Profile, FamilyMember } from '../types';
 import { get_supabase_client } from '../services/supabase_client';
+import { supermarketSupabase } from '../services/supermarket_api';
 
 interface UseAuthParams {
   set_profile: (profile: Profile | null) => void;
@@ -121,6 +122,12 @@ export const use_auth = ({
       trigger_push("Error de Acceso", error.message);
       return false;
     }
+    
+    // Log in to supermarketSupabase in parallel
+    await supermarketSupabase.auth.signInWithPassword({ email, password: pass }).catch(e => {
+      console.warn("Failed to log in to Supermarket database in parallel:", e);
+    });
+
     trigger_push("¡Bienvenido/a!", "Sesión iniciada con éxito.");
     return true;
   };
@@ -133,6 +140,12 @@ export const use_auth = ({
       trigger_push("Error de Registro", error.message);
       return false;
     }
+
+    // Sign up to supermarketSupabase in parallel
+    await supermarketSupabase.auth.signUp({ email, password: pass }).catch(e => {
+      console.warn("Failed to sign up to Supermarket database in parallel:", e);
+    });
+
     if (data.session === null && data.user) {
       trigger_push(
         "Revisa tu correo 📧",
@@ -148,6 +161,7 @@ export const use_auth = ({
     const supabase = get_supabase_client();
     if (!supabase) return;
     await supabase.auth.signOut();
+    await supermarketSupabase.auth.signOut().catch(() => {});
     trigger_push("Sesión cerrada", "Has cerrado sesión.");
   };
 

@@ -25,13 +25,31 @@ import { use_family } from './use_family';
 import { use_suggestions } from './use_suggestions';
 import { use_local_storage_sync } from './use_local_storage_sync';
 import { use_supabase_realtime_sync } from './use_supabase_realtime_sync';
+import { use_ingredient_mappings } from './use_ingredient_mappings';
 import { create_empty_day_plan, normalize_day_plan } from '../utils/planner_helpers';
 
 type MealType = 'desayuno' | 'comida' | 'cena';
 
 export const use_global_state = () => {
   // --- Master State variables (State Lifting) ---
-  const [active_tab, set_active_tab] = useState<'plan' | 'despensa' | 'compra' | 'recetas' | 'familia'>('plan');
+  const [active_tab, set_active_tab] = useState<'plan' | 'despensa' | 'compra' | 'recetas' | 'familia' | 'presupuesto'>('plan');
+  
+  const [weekly_budget, set_weekly_budget] = useState<number>(() => {
+    const saved = localStorage.getItem('calla_y_come_weekly_budget');
+    return saved ? Number(saved) : 50;
+  });
+
+  const [preferred_supermarket, set_preferred_supermarket] = useState<string>(() => {
+    return localStorage.getItem('calla_y_come_preferred_supermarket') || 'cheapest';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('calla_y_come_weekly_budget', String(weekly_budget));
+  }, [weekly_budget]);
+
+  useEffect(() => {
+    localStorage.setItem('calla_y_come_preferred_supermarket', preferred_supermarket);
+  }, [preferred_supermarket]);
   
   const [pantry_items, set_pantry_items] = useState<PantryItem[]>(() => {
     const local = localStorage.getItem('local_pantry');
@@ -294,6 +312,17 @@ export const use_global_state = () => {
     }
   };
 
+  const trigger_auto_retrain = async (): Promise<void> => {
+    try {
+      const response = await fetch('http://localhost:8002/api/ai/auto-retrain', { method: 'POST' });
+      const json = await response.json();
+      if (json?.data?.retrained) {
+        trigger_push('🧠 La IA ha aprendido', 'El modelo se ha reentrenado con los nuevos votos de la familia.');
+      }
+    } catch {
+    }
+  };
+
   const increment_recipe_vote = async (recipeId: number): Promise<void> => {
     const current_weight = recipe_weights[recipeId] || 0;
     const next_weight = current_weight + 1;
@@ -332,7 +361,60 @@ export const use_global_state = () => {
         console.error('Error updating recipe weight in Supabase:', err);
       }
     }
+
+    trigger_auto_retrain();
   };
+
+  const decrement_recipe_vote = async (recipeId: number): Promise<void> => {
+    const current_weight = recipe_weights[recipeId] || 0;
+    const next_weight = Math.max(0, current_weight - 1);
+
+    set_recipe_weights(prev => {
+      const next = { ...prev, [recipeId]: next_weight };
+      localStorage.setItem('calla_y_come_recipe_votes', JSON.stringify(next));
+      return next;
+    });
+
+    const supabase = get_supabase_client();
+    if (supabase && (profile?.active_family_id || user?.id)) {
+      try {
+        let query = supabase.from('recipe_weights').select('*').eq('recipe_id', recipeId);
+        if (profile?.active_family_id) {
+          query = query.eq('family_id', profile.active_family_id);
+        } else {
+          query = query.eq('user_id', user?.id).is('family_id', null);
+        }
+        const { data } = await query;
+        if (data && data.length > 0) {
+          const updated_weight = Math.max(0, data[0].weight - 1);
+          await supabase
+            .from('recipe_weights')
+            .update({ weight: updated_weight })
+            .eq('id', data[0].id);
+        } else {
+          const insertRow: any = { recipe_id: recipeId, weight: 0 };
+          if (profile?.active_family_id) {
+            insertRow.family_id = profile.active_family_id;
+          } else {
+            insertRow.user_id = user?.id;
+          }
+          await supabase.from('recipe_weights').insert([insertRow]);
+        }
+      } catch (err) {
+        console.error('Error decrementing recipe weight in Supabase:', err);
+      }
+    }
+
+    trigger_auto_retrain();
+  };
+
+  const [budget_filter_active, set_budget_filter_active] = useState<boolean>(() => {
+    return localStorage.getItem('calla_y_come_budget_filter_active') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('calla_y_come_budget_filter_active', String(budget_filter_active));
+  }, [budget_filter_active]);
 
   // --- Sub-hooks Instantiations ---
   const auth = use_auth({
@@ -350,6 +432,12 @@ export const use_global_state = () => {
 
   // Keep recipes ref in sync
   useEffect(() => { recipes_ref.current = recipes_handler.recipes; }, [recipes_handler.recipes]);
+
+  const ingredient_mappings = use_ingredient_mappings({
+    profile,
+    user,
+    trigger_push
+  });
 
   const pantry = use_pantry({
     pantry_items,
@@ -482,6 +570,7 @@ export const use_global_state = () => {
 
   useEffect(() => {
     recipes_handler.load_recipes();
+    ingredient_mappings.load_mappings();
   }, [supabase_connected]);
 
   useEffect(() => {
@@ -604,6 +693,16 @@ export const use_global_state = () => {
   return {
     active_tab,
     set_active_tab,
+    weekly_budget,
+    set_weekly_budget,
+    preferred_supermarket,
+    set_preferred_supermarket,
+    budget_filter_active,
+    set_budget_filter_active,
+    ingredient_mappings: ingredient_mappings.mappings,
+    handle_save_mapping: ingredient_mappings.handle_save_mapping,
+    handle_delete_mapping: ingredient_mappings.handle_delete_mapping,
+    calculate_recipe_cost: ingredient_mappings.calculate_recipe_cost,
     recipes: recipes_handler.recipes,
     pantry_items,
     shopping_items,
@@ -623,6 +722,7 @@ export const use_global_state = () => {
     set_assigning_meal,
     recipe_search: recipes_handler.recipe_search,
     set_recipe_search: recipes_handler.set_recipe_search,
+    db_ingredients: recipes_handler.db_ingredients,
     trigger_push,
     get_pantry_match_info: pantry.get_pantry_match_info,
     handle_auto_generate_plan: () => planner.handle_auto_generate_plan(recipes_handler.recipes),
@@ -644,7 +744,22 @@ export const use_global_state = () => {
     handle_move_meal_slot: planner.handle_move_meal_slot,
     handle_assign_recipe,
     handle_remove_assigned_recipe,
-    get_selectable_recipes: () => recipes_handler.get_selectable_recipes(assigning_meal, pantry.get_pantry_match_info, pantry_items_ref.current),
+    get_selectable_recipes: () => {
+      const list = recipes_handler.get_selectable_recipes(assigning_meal, pantry.get_pantry_match_info, pantry_items_ref.current);
+      const mapped = list.map(item => {
+        const cost = ingredient_mappings.calculate_recipe_cost(item.recipe, preferred_supermarket);
+        return { ...item, cost };
+      });
+      if (!budget_filter_active) {
+        return mapped;
+      }
+      return mapped.sort((a, b) => {
+        if (a.has_leftover !== b.has_leftover) {
+          return a.has_leftover ? -1 : 1;
+        }
+        return a.cost - b.cost;
+      });
+    },
     handle_add_recipe: recipes_handler.handle_add_recipe,
     handle_login: auth.handle_login,
     handle_signup: auth.handle_signup,
@@ -679,6 +794,9 @@ export const use_global_state = () => {
     show_quejometro,
     set_show_quejometro,
     cooked_days,
-    set_cooked_days
+    set_cooked_days,
+    increment_recipe_vote,
+    decrement_recipe_vote,
+    recipe_weights
   };
 };

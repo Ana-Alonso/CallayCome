@@ -104,13 +104,17 @@ export const use_supabase_realtime_sync = ({
     // Listen for app coming to foreground
     let appStateListener: any = null;
     try {
-      appStateListener = CapApp.addListener('appStateChange', (state: any) => {
+      CapApp.addListener('appStateChange', (state: any) => {
         if (state.isActive) {
           sync_unread_notifications();
         }
+      }).then(handle => {
+        appStateListener = handle;
+      }).catch(e => {
+        console.warn("CapApp listener not supported:", e);
       });
     } catch (e) {
-      console.warn("CapApp listener not supported:", e);
+      console.warn("CapApp listener error:", e);
     }
 
     // 2. Real-time data reload channel for active family or individual planner
@@ -238,7 +242,7 @@ export const use_supabase_realtime_sync = ({
       if (data_channel) {
         supabase.removeChannel(data_channel);
       }
-      if (appStateListener) {
+      if (appStateListener && typeof appStateListener.remove === 'function') {
         appStateListener.remove();
       }
     };

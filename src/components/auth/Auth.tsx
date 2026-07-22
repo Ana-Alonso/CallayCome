@@ -1,16 +1,15 @@
+import { LogIn, Mail, Lock } from 'lucide-react';
 import { useState } from 'react';
-import { LogIn, UserPlus, Mail } from 'lucide-react';
 import { Boton } from '../common/Boton';
 import { CampoTexto } from '../common/CampoTexto';
-import { 
-  PageContainer, 
-  CardContainer, 
-  TitleH2, 
-  TextMuted, 
-  Spacer, 
-  FormGroup, 
+import {
+  PageContainer,
+  CardContainer,
+  TitleH2,
+  TextMuted,
+  Spacer,
+  FormGroup,
   FormLabel,
-  FlexRow
 } from '../common';
 
 interface AuthProps {
@@ -19,34 +18,21 @@ interface AuthProps {
   on_success: () => void;
 }
 
-export const Auth = ({ on_login, on_signup, on_success }: AuthProps) => {
-  const [is_login, set_is_login] = useState<boolean>(true);
+export const Auth = ({ on_login, on_success }: AuthProps) => {
   const [email, set_email] = useState<string>('');
   const [password, set_password] = useState<string>('');
   const [loading, set_loading] = useState<boolean>(false);
-  const [awaiting_confirmation, set_awaiting_confirmation] = useState<boolean>(false);
 
   const handle_submit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) return;
     set_loading(true);
     try {
-      if (is_login) {
-        const ok = await on_login(email.trim(), password);
-        if (ok) {
-          set_email('');
-          set_password('');
-          on_success();
-        }
-      } else {
-        const ok = await on_signup(email.trim(), password);
-        if (ok) {
-          set_email('');
-          set_password('');
-          on_success();
-        } else {
-          set_awaiting_confirmation(true);
-        }
+      const ok = await on_login(email.trim(), password);
+      if (ok) {
+        set_email('');
+        set_password('');
+        on_success();
       }
     } catch (err) {
       console.error(err);
@@ -55,49 +41,51 @@ export const Auth = ({ on_login, on_signup, on_success }: AuthProps) => {
     }
   };
 
-  if (awaiting_confirmation) {
-    return (
-      <PageContainer>
-        <CardContainer style={{ textAlign: 'center', padding: '32px 24px' }}>
-          <Mail size={48} style={{ color: '#f26841', marginBottom: 16 }} />
-          <TitleH2>Confirma tu correo</TitleH2>
-          <Spacer height={12} />
-          <TextMuted>
-            Hemos enviado un enlace de confirmación a <strong>{email}</strong>.
-            Haz clic en el enlace del correo para activar tu cuenta.
-          </TextMuted>
-          <Spacer height={16} />
-          <TextMuted style={{ fontSize: 12, color: '#f26841' }}>
-            ¿No llega el correo? El administrador puede desactivar la confirmación de email en
-            Supabase → Authentication → Providers → Email → "Confirm email".
-          </TextMuted>
-          <Spacer height={20} />
-          <Boton
-            texto="Volver al inicio de sesión"
-            variante="outlined"
-            clase_css="full-width"
-            on_click={() => {
-              set_awaiting_confirmation(false);
-              set_is_login(true);
-            }}
-          />
-        </CardContainer>
-      </PageContainer>
-    );
-  }
-
   return (
     <PageContainer>
-      <TitleH2>{is_login ? 'Acceso a Tu Cuenta' : 'Crea tu Cuenta'}</TitleH2>
-      <TextMuted>
-        {is_login 
-          ? 'Identifícate para sincronizar tu despensa y plan con tu familia.' 
-          : 'Regístrate para poder crear o unirte a unidades familiares.'}
-      </TextMuted>
-
-      <Spacer height={10} />
+      <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 64,
+          height: 64,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #f26841, #e84393)',
+          marginBottom: 16,
+          fontSize: 28,
+        }}>
+          🍳
+        </div>
+        <TitleH2>Calla y Come</TitleH2>
+        <Spacer height={8} />
+        <TextMuted>Acceso solo para miembros invitados</TextMuted>
+      </div>
 
       <CardContainer component="form" onSubmit={handle_submit}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          background: 'rgba(242, 104, 65, 0.08)',
+          border: '1px solid rgba(242, 104, 65, 0.25)',
+          borderRadius: 10,
+          padding: '10px 14px',
+          marginBottom: 18,
+        }}>
+          <Lock size={14} style={{ color: '#f26841', flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: '#f26841', lineHeight: 1.4 }}>
+            Esta aplicación es privada. Si eres reclutador/a y quieres ver una demo,{' '}
+            <a
+              href="mailto:alonsogomezana03@gmail.com"
+              style={{ color: '#f26841', fontWeight: 600 }}
+            >
+              contáctame
+            </a>
+            .
+          </span>
+        </div>
+
         <FormGroup>
           <FormLabel>Correo Electrónico</FormLabel>
           <CampoTexto
@@ -117,7 +105,7 @@ export const Auth = ({ on_login, on_signup, on_success }: AuthProps) => {
             valor={password}
             on_change={set_password}
             tipo="password"
-            marcador_posicion="Mínimo 6 caracteres"
+            marcador_posicion="Tu contraseña"
             requerido
           />
         </FormGroup>
@@ -125,27 +113,29 @@ export const Auth = ({ on_login, on_signup, on_success }: AuthProps) => {
         <Spacer height={10} />
 
         <Boton
-          texto={loading ? 'Procesando...' : is_login ? 'Iniciar Sesión' : 'Registrarse'}
+          texto={loading ? 'Accediendo...' : 'Iniciar Sesión'}
           tipo="submit"
-          icono={is_login ? <LogIn size={18} /> : <UserPlus size={18} />}
+          icono={<LogIn size={18} />}
           clase_css="full-width"
           deshabilitado={loading}
         />
 
-        <Spacer height={12} />
+        <Spacer height={20} />
 
-        <FlexRow style={{ justifyContent: 'center' }}>
-          <Boton
-            texto={is_login ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia Sesión'}
-            on_click={() => {
-              set_is_login(!is_login);
-              set_awaiting_confirmation(false);
-            }}
-            variante="text"
-            tipo="button"
-            clase_css="btn-sm"
-          />
-        </FlexRow>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+            <Mail size={13} style={{ color: 'var(--color-text-muted, #888)' }} />
+            <span style={{ fontSize: 12, color: 'var(--color-text-muted, #888)' }}>
+              ¿Necesitas acceso?{' '}
+              <a
+                href="mailto:alonsogomezana03@gmail.com"
+                style={{ color: 'var(--color-primary, #f26841)', fontWeight: 500 }}
+              >
+                Solicita una invitación
+              </a>
+            </span>
+          </div>
+        </div>
       </CardContainer>
     </PageContainer>
   );
