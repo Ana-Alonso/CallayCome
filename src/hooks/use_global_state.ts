@@ -764,6 +764,7 @@ export const use_global_state = () => {
     handle_login: auth.handle_login,
     handle_signup: auth.handle_signup,
     handle_logout: auth.handle_logout,
+    handle_change_password: auth.handle_change_password,
     handle_create_family: family.handle_create_family,
     handle_join_family: async (inviteCode: string) => { await family.handle_join_family(inviteCode); },
     handle_switch_family: family.handle_switch_family,

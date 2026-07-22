@@ -184,12 +184,35 @@ export const use_auth = ({
     }
   };
 
+  const handle_change_password = async (email: string, oldPass: string, newPass: string): Promise<boolean> => {
+    const supabase = get_supabase_client();
+    if (!supabase) return false;
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: oldPass });
+    if (signInError) {
+      trigger_push("Error", "La contraseña actual es incorrecta.");
+      return false;
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPass });
+    if (updateError) {
+      trigger_push("Error", `No se pudo actualizar la contraseña: ${updateError.message}`);
+      return false;
+    }
+
+    await supermarketSupabase.auth.updateUser({ password: newPass }).catch(() => {});
+
+    trigger_push("Contraseña Actualizada 🎉", "Tu contraseña ha sido actualizada con éxito.");
+    return true;
+  };
+
   return {
     load_user_families,
     load_user_profile,
     handle_login,
     handle_signup,
     handle_logout,
-    handle_delete_account
+    handle_delete_account,
+    handle_change_password
   };
 };

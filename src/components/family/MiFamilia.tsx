@@ -49,6 +49,7 @@ interface MiFamiliaProps {
   update_accessibility: (key: 'high_contrast' | 'large_text' | 'read_aloud', value: boolean) => void;
   speak: (text: string) => void;
   handle_delete_account: () => Promise<boolean>;
+  handle_change_password: (email: string, oldPass: string, newPass: string) => Promise<boolean>;
 }
 
 export const MiFamilia = ({
@@ -74,7 +75,8 @@ export const MiFamilia = ({
   accessibility_options,
   update_accessibility,
   speak,
-  handle_delete_account
+  handle_delete_account,
+  handle_change_password
 }: MiFamiliaProps) => {
   const [familyName, setFamilyName] = useState<string>('');
   const [inviteCode, setInviteCode] = useState<string>('');
@@ -91,6 +93,55 @@ export const MiFamilia = ({
   const [quejometro, set_quejometro] = useState<Record<string, number>>({});
   const [loading_active_members, set_loading_active_members] = useState<boolean>(false);
   const [confirm_delete_account, set_confirm_delete_account] = useState<boolean>(false);
+
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+
+  const hasMinLength = newPassword.length >= 8;
+  const hasUpper = /[A-Z]/.test(newPassword);
+  const hasLower = /[a-z]/.test(newPassword);
+  const hasNumber = /[0-9]/.test(newPassword);
+  const hasSpecial = /[@$!%*?&]/.test(newPassword);
+  const isNewPasswordSecure = hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial;
+
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess(false);
+
+    if (!oldPassword || !newPassword || !confirmNewPassword) {
+      setPasswordError('Todos los campos son obligatorios.');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError('Las nuevas contraseñas no coinciden.');
+      return;
+    }
+
+    if (!isNewPasswordSecure) {
+      setPasswordError('La nueva contraseña no cumple con los requisitos de seguridad.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const ok = await handle_change_password(user?.email || '', oldPassword, newPassword);
+      if (ok) {
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setPasswordSuccess(true);
+      }
+    } catch (err: any) {
+      setPasswordError(err.message || 'Error al cambiar la contraseña.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (profile?.active_family_id) {
@@ -693,6 +744,90 @@ export const MiFamilia = ({
                 <span>Audio-guía (Leer en voz alta los elementos al hacer clic)</span>
               </label>
             </div>
+          </CardContainer>
+
+          <CardContainer style={{ padding: '16px', marginBottom: 16 }}>
+            <span style={{ fontSize: 14, fontWeight: 'bold', display: 'block', marginBottom: 12 }}>
+              🔒 Cambiar Contraseña
+            </span>
+            <form onSubmit={handleChangePasswordSubmit}>
+              {passwordError && (
+                <div style={{ color: '#e53e3e', fontSize: 12, marginBottom: 12 }}>
+                  {passwordError}
+                </div>
+              )}
+              {passwordSuccess && (
+                <div style={{ color: '#48bb78', fontSize: 12, marginBottom: 12 }}>
+                  ¡Contraseña actualizada con éxito!
+                </div>
+              )}
+              <FormGroup>
+                <FormLabel>Contraseña Actual</FormLabel>
+                <CampoTexto
+                  etiqueta=""
+                  valor={oldPassword}
+                  on_change={setOldPassword}
+                  tipo="password"
+                  marcador_posicion="Contraseña actual"
+                  requerido
+                />
+              </FormGroup>
+              <FormGroup>
+                <FormLabel>Nueva Contraseña</FormLabel>
+                <CampoTexto
+                  etiqueta=""
+                  valor={newPassword}
+                  on_change={setNewPassword}
+                  tipo="password"
+                  marcador_posicion="Contraseña"
+                  requerido
+                />
+              </FormGroup>
+              {newPassword.length > 0 && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  borderRadius: 8,
+                  padding: '8px 10px',
+                  marginBottom: 12
+                }}>
+                  <div style={{ fontSize: '10px', fontWeight: 600, color: '#888', marginBottom: 4 }}>Nueva contraseña debe tener:</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '10px', color: hasMinLength ? '#48bb78' : '#e53e3e' }}>
+                    {hasMinLength ? '✓' : '✗'} Mínimo 8 caracteres
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '10px', color: hasUpper ? '#48bb78' : '#e53e3e' }}>
+                    {hasUpper ? '✓' : '✗'} Al menos una mayúscula
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '10px', color: hasLower ? '#48bb78' : '#e53e3e' }}>
+                    {hasLower ? '✓' : '✗'} Al menos una minúscula
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '10px', color: hasNumber ? '#48bb78' : '#e53e3e' }}>
+                    {hasNumber ? '✓' : '✗'} Al menos un número
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '10px', color: hasSpecial ? '#48bb78' : '#e53e3e' }}>
+                    {hasSpecial ? '✓' : '✗'} Al menos un carácter especial (@$!%*?&)
+                  </div>
+                </div>
+              )}
+              <Spacer height={6} />
+              <FormGroup>
+                <FormLabel>Confirmar Nueva Contraseña</FormLabel>
+                <CampoTexto
+                  etiqueta=""
+                  valor={confirmNewPassword}
+                  on_change={setConfirmNewPassword}
+                  tipo="password"
+                  marcador_posicion="Confirmar nueva contraseña"
+                  requerido
+                />
+              </FormGroup>
+              <Boton
+                texto="Actualizar Contraseña"
+                tipo="submit"
+                clase_css="full-width"
+                deshabilitado={loading || (!isNewPasswordSecure && newPassword.length > 0)}
+              />
+            </form>
           </CardContainer>
 
           <CardContainer style={{ padding: '16px', marginBottom: 16, border: '1px solid rgba(239, 83, 80, 0.3)', backgroundColor: 'rgba(239, 83, 80, 0.04)' }}>

@@ -101,6 +101,7 @@ export const App = () => {
     handle_login,
     handle_signup,
     handle_logout,
+    handle_change_password,
     handle_create_family,
     handle_join_family,
     handle_switch_family,
@@ -527,6 +528,7 @@ export const App = () => {
           update_accessibility={update_accessibility}
           speak={speak}
           handle_delete_account={handle_delete_account}
+          handle_change_password={handle_change_password}
         />
       )}
 
