@@ -48,25 +48,23 @@ export const Auth = ({ on_login, on_success }: AuthProps) => {
 
   return (
     <PageContainer>
-      <div style={{ textAlign: 'center', marginBottom: 20 }}>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 56,
-          height: 56,
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, #f26841, #e84393)',
-          marginBottom: 12,
-          fontSize: 24,
-        }}>
-          🍳
-        </div>
-        <TitleH2>Acceso a Tu Cuenta</TitleH2>
-        <Spacer height={6} />
-        <TextMuted>
-          Identifícate para sincronizar tu despensa y plan con tu familia.
-        </TextMuted>
+      <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <img
+          src="/logo.jpg"
+          alt="La Cocina de la Abuela"
+          style={{
+            width: 96,
+            height: 96,
+            borderRadius: '50%',
+            objectFit: 'cover',
+            marginBottom: 16,
+            boxShadow: '0 4px 20px rgba(242, 104, 65, 0.35)',
+            border: '3px solid rgba(242, 104, 65, 0.3)',
+          }}
+        />
+        <TitleH2>Calla y Come</TitleH2>
+        <Spacer height={8} />
+        <TextMuted>Acceso solo para miembros invitados</TextMuted>
       </div>
 
       <CardContainer component="form" onSubmit={handle_submit}>
