@@ -4,7 +4,7 @@
 
 # Calla y Come 🍳
 
-![CI](https://github.com/Ana-Alonso/LCDLA/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/Ana-Alonso/CallayCome/actions/workflows/ci.yml/badge.svg)
 ### La Cocina de la Abuela
 
 Una aplicación híbrida **web + Android** para planificar menús semanales, gestionar la despensa, autogenerar la lista de la compra y coordinar recetas en familia — en tiempo real.
