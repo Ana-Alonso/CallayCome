@@ -9,7 +9,7 @@ interface UseFamilyParams {
   load_user_profile: (userId: string) => Promise<void>;
 }
 
-export const use_family = ({
+export const useFamily = ({
   user,
   my_families,
   trigger_push,

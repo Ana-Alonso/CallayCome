@@ -10,7 +10,7 @@ interface UsePantryParams {
   user: User | null;
 }
 
-export const use_pantry = ({
+export const usePantry = ({
   pantry_items,
   set_pantry_items,
   profile,

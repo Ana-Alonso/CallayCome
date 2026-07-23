@@ -10,7 +10,7 @@ interface UseAuthParams {
   load_local_data: () => void;
 }
 
-export const use_auth = ({
+export const useAuth = ({
   set_profile,
   set_my_families,
   trigger_push,

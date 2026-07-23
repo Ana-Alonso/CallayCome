@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { use_pantry } from '../use_pantry';
+import { usePantry } from '../usePantry';
 import { get_supabase_client } from '../../services/supabase_client';
 import type { Profile } from '../../types';
 import type { User } from '@supabase/supabase-js';
@@ -10,7 +10,7 @@ vi.mock('../../services/supabase_client', () => ({
   get_supabase_client: vi.fn()
 }));
 
-describe('use_pantry hook', () => {
+describe('usePantry hook', () => {
   const mockSetPantryItems = vi.fn();
   const mockTriggerPush = vi.fn();
 
@@ -41,7 +41,7 @@ describe('use_pantry hook', () => {
     const mockDb = createSupabaseMock([]);
     vi.mocked(get_supabase_client).mockReturnValue(mockDb as any);
 
-    const { result } = renderHook(() => use_pantry({
+    const { result } = renderHook(() => usePantry({
       pantry_items: [],
       set_pantry_items: mockSetPantryItems,
       profile: mockFamilyProfile,
@@ -60,7 +60,7 @@ describe('use_pantry hook', () => {
     const mockDb = createSupabaseMock([]);
     vi.mocked(get_supabase_client).mockReturnValue(mockDb as any);
 
-    const { result } = renderHook(() => use_pantry({
+    const { result } = renderHook(() => usePantry({
       pantry_items: [],
       set_pantry_items: mockSetPantryItems,
       profile: mockIndividualProfile,
@@ -80,7 +80,7 @@ describe('use_pantry hook', () => {
     const mockDb = createSupabaseMock({ id: 50, ingredient_name: 'Manzana', quantity: 2, unit: 'uds' });
     vi.mocked(get_supabase_client).mockReturnValue(mockDb as any);
 
-    const { result } = renderHook(() => use_pantry({
+    const { result } = renderHook(() => usePantry({
       pantry_items: [],
       set_pantry_items: mockSetPantryItems,
       profile: mockFamilyProfile,
@@ -103,7 +103,7 @@ describe('use_pantry hook', () => {
     const mockDb = createSupabaseMock({ id: 51, ingredient_name: 'Plátano', quantity: 3, unit: 'uds' });
     vi.mocked(get_supabase_client).mockReturnValue(mockDb as any);
 
-    const { result } = renderHook(() => use_pantry({
+    const { result } = renderHook(() => usePantry({
       pantry_items: [],
       set_pantry_items: mockSetPantryItems,
       profile: mockIndividualProfile,

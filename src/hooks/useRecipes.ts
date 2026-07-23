@@ -8,7 +8,7 @@ interface UseRecipesParams {
   get_recipe_votes?: (recipeId: number) => number;
 }
 
-export const use_recipes = ({
+export const useRecipes = ({
   trigger_push,
   get_recipe_votes
 }: UseRecipesParams) => {

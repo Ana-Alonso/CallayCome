@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { use_planner } from '../use_planner';
+import { usePlanner } from '../usePlanner';
 import { get_supabase_client } from '../../services/supabase_client';
 import type { MealPlanDay, Profile } from '../../types';
 import type { User } from '@supabase/supabase-js';
@@ -10,7 +10,7 @@ vi.mock('../../services/supabase_client', () => ({
   get_supabase_client: vi.fn()
 }));
 
-describe('use_planner hook', () => {
+describe('usePlanner hook', () => {
   const mockSetMealPlan = vi.fn();
   const mockSetStartDate = vi.fn();
   const mockSetPantryItems = vi.fn();
@@ -51,7 +51,7 @@ describe('use_planner hook', () => {
     const mockDb = createSupabaseMock([]);
     vi.mocked(get_supabase_client).mockReturnValue(mockDb as any);
 
-    const { result } = renderHook(() => use_planner({
+    const { result } = renderHook(() => usePlanner({
       meal_plan: mockMealPlan,
       set_meal_plan: mockSetMealPlan,
       start_date: '2026-07-17',
@@ -77,7 +77,7 @@ describe('use_planner hook', () => {
     const mockDb = createSupabaseMock([]);
     vi.mocked(get_supabase_client).mockReturnValue(mockDb as any);
 
-    const { result } = renderHook(() => use_planner({
+    const { result } = renderHook(() => usePlanner({
       meal_plan: mockMealPlan,
       set_meal_plan: mockSetMealPlan,
       start_date: '2026-07-17',
@@ -104,7 +104,7 @@ describe('use_planner hook', () => {
     const mockDb = createSupabaseMock();
     vi.mocked(get_supabase_client).mockReturnValue(mockDb as any);
 
-    const { result } = renderHook(() => use_planner({
+    const { result } = renderHook(() => usePlanner({
       meal_plan: mockMealPlan,
       set_meal_plan: mockSetMealPlan,
       start_date: '2026-07-17',
@@ -130,7 +130,7 @@ describe('use_planner hook', () => {
     const mockDb = createSupabaseMock();
     vi.mocked(get_supabase_client).mockReturnValue(mockDb as any);
 
-    const { result } = renderHook(() => use_planner({
+    const { result } = renderHook(() => usePlanner({
       meal_plan: mockMealPlan,
       set_meal_plan: mockSetMealPlan,
       start_date: '2026-07-17',
@@ -169,7 +169,7 @@ describe('use_planner hook', () => {
       { id: 4, name: 'Cena', meal_type: 'cena', ingredients: [] }
     ];
 
-    const { result } = renderHook(() => use_planner({
+    const { result } = renderHook(() => usePlanner({
       meal_plan: [],
       set_meal_plan: mockSetMealPlan,
       start_date: '2026-07-17',

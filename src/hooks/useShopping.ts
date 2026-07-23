@@ -14,7 +14,7 @@ interface UseShoppingParams {
   user: User | null;
 }
 
-export const use_shopping = ({
+export const useShopping = ({
   shopping_items,
   set_shopping_items,
   profile,

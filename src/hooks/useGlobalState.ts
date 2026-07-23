@@ -16,21 +16,21 @@ import {
 } from '../services/supabase_client';
 import { NotificationService } from '../services/notification';
 
-import { use_auth } from './use_auth';
-import { use_recipes } from './use_recipes';
-import { use_pantry } from './use_pantry';
-import { use_shopping } from './use_shopping';
-import { use_planner } from './use_planner';
-import { use_family } from './use_family';
-import { use_suggestions } from './use_suggestions';
-import { use_local_storage_sync } from './use_local_storage_sync';
-import { use_supabase_realtime_sync } from './use_supabase_realtime_sync';
-import { use_ingredient_mappings } from './use_ingredient_mappings';
+import { useAuth } from './useAuth';
+import { useRecipes } from './useRecipes';
+import { usePantry } from './usePantry';
+import { useShopping } from './useShopping';
+import { usePlanner } from './usePlanner';
+import { useFamily } from './useFamily';
+import { useSuggestions } from './useSuggestions';
+import { useLocalStorageSync } from './useLocalStorageSync';
+import { useSupabaseRealtimeSync } from './useSupabaseRealtimeSync';
+import { useIngredientMappings } from './useIngredientMappings';
 import { create_empty_day_plan, normalize_day_plan } from '../utils/planner_helpers';
 
 type MealType = 'desayuno' | 'comida' | 'cena';
 
-export const use_global_state = () => {
+export const useGlobalState = () => {
   // --- Master State variables (State Lifting) ---
   const [active_tab, set_active_tab] = useState<'plan' | 'despensa' | 'compra' | 'recetas' | 'familia' | 'presupuesto'>('plan');
   
@@ -416,16 +416,16 @@ export const use_global_state = () => {
     localStorage.setItem('calla_y_come_budget_filter_active', String(budget_filter_active));
   }, [budget_filter_active]);
 
-  // --- Sub-hooks Instantiations ---
-  const auth = use_auth({
+  // --- Sub-hooks Instantiation ---
+  const auth = useAuth({
     set_profile,
     set_my_families,
     trigger_push,
-    load_family_data,
+    load_family_data: (fid, _startDateVal, uid) => planner.load_planner_data(fid, uid),
     load_local_data
   });
 
-  const recipes_handler = use_recipes({
+  const recipes_handler = useRecipes({
     trigger_push,
     get_recipe_votes
   });
@@ -433,13 +433,13 @@ export const use_global_state = () => {
   // Keep recipes ref in sync
   useEffect(() => { recipes_ref.current = recipes_handler.recipes; }, [recipes_handler.recipes]);
 
-  const ingredient_mappings = use_ingredient_mappings({
+  const ingredient_mappings = useIngredientMappings({
     profile,
     user,
     trigger_push
   });
 
-  const pantry = use_pantry({
+  const pantry = usePantry({
     pantry_items,
     set_pantry_items,
     profile,
@@ -447,7 +447,7 @@ export const use_global_state = () => {
     user
   });
 
-  const shopping = use_shopping({
+  const shopping = useShopping({
     shopping_items,
     set_shopping_items,
     profile,
@@ -457,7 +457,7 @@ export const use_global_state = () => {
     user
   });
 
-  const planner = use_planner({
+  const planner = usePlanner({
     meal_plan,
     set_meal_plan,
     start_date,
@@ -475,18 +475,18 @@ export const use_global_state = () => {
     user
   });
 
-  const family = use_family({
+  const family = useFamily({
     user,
     my_families,
     trigger_push,
     load_user_profile: auth.load_user_profile
   });
 
-  const suggestions_handler = use_suggestions({
+  const suggestions_handler = useSuggestions({
     user,
     profile,
     trigger_push,
-    load_family_data,
+    load_family_data: (fid) => planner.load_planner_data(fid),
     set_suggestions,
     recipes: recipes_handler.recipes
   });
@@ -566,7 +566,7 @@ export const use_global_state = () => {
   };
 
   // Sync to local storage
-  use_local_storage_sync(pantry_items, shopping_items, meal_plan, hide_breakfasts, show_quejometro, cooked_days);
+  useLocalStorageSync(pantry_items, shopping_items, meal_plan, hide_breakfasts, show_quejometro, cooked_days);
 
   useEffect(() => {
     recipes_handler.load_recipes();
@@ -642,7 +642,7 @@ export const use_global_state = () => {
   }, []);
 
   // Setup real-time Supabase subscriptions and notification sync
-  use_supabase_realtime_sync({
+  useSupabaseRealtimeSync({
     supabase_connected,
     user,
     profile,

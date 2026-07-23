@@ -10,7 +10,7 @@ interface UseIngredientMappingsParams {
   trigger_push: (title: string, message: string) => void;
 }
 
-export const use_ingredient_mappings = ({
+export const useIngredientMappings = ({
   profile,
   user,
   trigger_push

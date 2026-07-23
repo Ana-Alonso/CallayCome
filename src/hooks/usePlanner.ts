@@ -24,7 +24,7 @@ interface UsePlannerParams {
   user: User | null;
 }
 
-export const use_planner = ({
+export const usePlanner = ({
   meal_plan,
   set_meal_plan,
   start_date,

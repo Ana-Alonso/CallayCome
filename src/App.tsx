@@ -13,7 +13,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 
-import { use_global_state } from './hooks/use_global_state';
+import { useGlobalState } from './hooks/useGlobalState';
 import { Box } from './components/common/Box';
 import { Dialogo } from './components/common/Dialogo';
 import { ModalFiltros } from './components/common/ModalFiltros';
@@ -131,7 +131,7 @@ export const App = () => {
     speak,
     handle_delete_account,
     db_ingredients
-  } = use_global_state();
+  } = useGlobalState();
 
   const [mostrar_modo_nevera, set_mostrar_modo_nevera] = useState(false);
   const [mostrar_centro_notif, set_mostrar_centro_notif] = useState(false);

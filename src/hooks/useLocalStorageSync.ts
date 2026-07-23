@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import type { PantryItem, ShoppingItem, MealPlanDay } from '../types';
 
-export const use_local_storage_sync = (
+export const useLocalStorageSync = (
   pantry_items: PantryItem[],
   shopping_items: ShoppingItem[],
   meal_plan: MealPlanDay[],

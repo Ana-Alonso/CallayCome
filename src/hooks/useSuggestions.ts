@@ -13,7 +13,7 @@ interface UseSuggestionsParams {
   recipes: Recipe[];
 }
 
-export const use_suggestions = ({
+export const useSuggestions = ({
   user,
   profile,
   trigger_push,

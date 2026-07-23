@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { use_suggestions } from '../use_suggestions';
+import { useSuggestions } from '../useSuggestions';
 import { get_supabase_client } from '../../services/supabase_client';
 import type { Profile, Recipe } from '../../types';
 import type { User } from '@supabase/supabase-js';
@@ -10,7 +10,7 @@ vi.mock('../../services/supabase_client', () => ({
   get_supabase_client: vi.fn()
 }));
 
-describe('use_suggestions hook', () => {
+describe('useSuggestions hook', () => {
   const mockSetSuggestions = vi.fn();
   const mockTriggerPush = vi.fn();
   const mockLoadFamilyData = vi.fn();
@@ -72,7 +72,7 @@ describe('use_suggestions hook', () => {
     const mockDb = createSupabaseMock(mockSuggestionsPayload);
     vi.mocked(get_supabase_client).mockReturnValue(mockDb as any);
 
-    const { result } = renderHook(() => use_suggestions({
+    const { result } = renderHook(() => useSuggestions({
       user: mockUser,
       profile: mockProfile,
       trigger_push: mockTriggerPush,
@@ -113,7 +113,7 @@ describe('use_suggestions hook', () => {
     const mockDb = createSupabaseMock(mockSuggestionsPayload);
     vi.mocked(get_supabase_client).mockReturnValue(mockDb as any);
 
-    const { result } = renderHook(() => use_suggestions({
+    const { result } = renderHook(() => useSuggestions({
       user: mockUser,
       profile: mockProfile,
       trigger_push: mockTriggerPush,

@@ -16,7 +16,7 @@ interface RealtimeSyncParams {
   load_family_data_ref: React.RefObject<any>;
 }
 
-export const use_supabase_realtime_sync = ({
+export const useSupabaseRealtimeSync = ({
   supabase_connected,
   user,
   profile,

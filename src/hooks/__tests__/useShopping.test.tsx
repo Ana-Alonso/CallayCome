@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { use_shopping } from '../use_shopping';
+import { useShopping } from '../useShopping';
 import { get_supabase_client } from '../../services/supabase_client';
 import type { Profile } from '../../types';
 import type { User } from '@supabase/supabase-js';
@@ -10,7 +10,7 @@ vi.mock('../../services/supabase_client', () => ({
   get_supabase_client: vi.fn()
 }));
 
-describe('use_shopping hook', () => {
+describe('useShopping hook', () => {
   const mockSetShoppingItems = vi.fn();
   const mockTriggerPush = vi.fn();
   const mockHandleAddPantry = vi.fn();
@@ -49,7 +49,7 @@ describe('use_shopping hook', () => {
     const mockDb = createSupabaseMock([]);
     vi.mocked(get_supabase_client).mockReturnValue(mockDb as any);
 
-    const { result } = renderHook(() => use_shopping({
+    const { result } = renderHook(() => useShopping({
       shopping_items: [],
       set_shopping_items: mockSetShoppingItems,
       profile: mockFamilyProfile,
@@ -70,7 +70,7 @@ describe('use_shopping hook', () => {
     const mockDb = createSupabaseMock([]);
     vi.mocked(get_supabase_client).mockReturnValue(mockDb as any);
 
-    const { result } = renderHook(() => use_shopping({
+    const { result } = renderHook(() => useShopping({
       shopping_items: [],
       set_shopping_items: mockSetShoppingItems,
       profile: mockIndividualProfile,
@@ -92,7 +92,7 @@ describe('use_shopping hook', () => {
     const mockDb = createSupabaseMock({ id: 99, ingredient_name: 'Pan', quantity: 1, unit: 'barra', purchased: false, manual: true });
     vi.mocked(get_supabase_client).mockReturnValue(mockDb as any);
 
-    const { result } = renderHook(() => use_shopping({
+    const { result } = renderHook(() => useShopping({
       shopping_items: [],
       set_shopping_items: mockSetShoppingItems,
       profile: mockFamilyProfile,
@@ -119,7 +119,7 @@ describe('use_shopping hook', () => {
     const mockDb = createSupabaseMock({ id: 100, ingredient_name: 'Leche', quantity: 2, unit: 'litros', purchased: false, manual: true });
     vi.mocked(get_supabase_client).mockReturnValue(mockDb as any);
 
-    const { result } = renderHook(() => use_shopping({
+    const { result } = renderHook(() => useShopping({
       shopping_items: [],
       set_shopping_items: mockSetShoppingItems,
       profile: mockIndividualProfile,

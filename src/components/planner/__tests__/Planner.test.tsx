@@ -4,8 +4,8 @@ import { Planner } from '../Planner';
 import type { MealPlanDay, Recipe } from '../../../types';
 
 // Mock use_app_state hook to avoid connecting to Supabase in tests
-vi.mock('../../hooks/use_global_state', () => ({
-  use_global_state: () => ({
+vi.mock('../../../hooks/useGlobalState', () => ({
+  useGlobalState: () => ({
     suggestions: [],
     handle_approve_suggestion: vi.fn(),
     handle_reject_suggestion: vi.fn(),
