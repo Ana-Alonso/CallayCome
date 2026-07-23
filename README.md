@@ -1,69 +1,142 @@
-# Calla y Come 🍳 (La Cocina de la Abuela)
+<div align="center">
 
-Una aplicación móvil e híbrida moderna diseñada para planificar comidas semanales, gestionar existencias de la despensa, autogenerar la lista de la compra y coordinar menús familiares en tiempo real. 
+<img src="public/logo.jpg" alt="La Cocina de la Abuela" width="120" style="border-radius: 50%;" />
 
-Construido utilizando **React**, **TypeScript**, **Vite**, **Supabase** y **Capacitor** para ofrecer una experiencia nativa fluida en Android y Web.
+# Calla y Come 🍳
+### La Cocina de la Abuela
+
+Una aplicación híbrida **web + Android** para planificar menús semanales, gestionar la despensa, autogenerar la lista de la compra y coordinar recetas en familia — en tiempo real.
+
+[![CI/CD](https://github.com/Ana-Alonso/la-cocina-de-la-abuela/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Ana-Alonso/la-cocina-de-la-abuela/actions/workflows/ci-cd.yml)
+[![Live](https://img.shields.io/badge/🌐%20Live-callaycome.onrender.com-f26841)](https://callaycome.onrender.com)
+![React](https://img.shields.io/badge/React-19-61dafb?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?logo=typescript)
+![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ecf8e?logo=supabase)
+![Render](https://img.shields.io/badge/Deploy-Render-46e3b7?logo=render)
+
+</div>
 
 ---
 
-## ✨ Características Principales
+## ✨ Características
 
-*   📅 **Planificador de Menús**: Organiza y planifica desayunos, comidas y cenas. Permite autogenerar un plan óptimo basado en preferencias e ingredientes.
-*   🍲 **Priorización Inteligente de Sobras**: 
-    *   **Autogenerado**: Si tienes sobras en la despensa (por ejemplo, `"Sobras de Paella"`), la receta original de esa comida recibe un aumento de prioridad masivo en la autogeneración para planificarla y consumirla primero.
-    *   **Asignador Manual**: Al añadir un plato al menú manualmente, las recetas con sobras disponibles se listan primero e incorporan un identificador visual verde `🍲 Sobras`.
-*   🍎 **Despensa Cuantitativa con Buscador**: Controla existencias y busca rápidamente cualquier artículo en tiempo real.
-    *   **Buscador dinámico**: Filtra los artículos al instante con indicadores de estado vacío si no hay coincidencias.
-    *   **Conversor inteligente de unidades**: Reconoce automáticamente equivalencias compatibles (peso: `g`/`kg`/`gr`; volumen: `ml`/`l`; conteo: `uds`/`lonchas`/`rebanadas`).
-    *   **Consumo automático**: Al marcar un día como cocinado, los ingredientes se descuentan proporcionalmente.
-    *   **Eliminación parcial**: Ventana interactiva al borrar ingredientes manuales para restar porciones específicas.
-*   🛒 **Lista de Compra Dinámica con Buscador**: Genera una lista inteligente calculando la diferencia entre el menú planificado y el stock actual. Incluye búsqueda en tiempo real para encontrar rápidamente los artículos manuales o automáticos.
-*   🚨 **Boton de Pánico y Modo Nevera**: Sugiere recetas cocinables de forma inmediata evaluando las compras pendientes.
-*   👥 **Modo Familiar e Individual**: Sincronización colaborativa o uso privado e individualizado mediante políticas RLS dedicadas.
-*   🔔 **Centro de Notificaciones**: Bandeja modal persistente con historial cronológico y control de alertas flotantes (toasts) limitados a un máximo de 3 para evitar saturación de pantalla.
+| Módulo | Descripción |
+|--------|-------------|
+| 📅 **Planificador** | Organiza desayunos, comidas y cenas. Autogenera el plan óptimo según preferencias e ingredientes disponibles |
+| 🍲 **Gestión de Sobras** | Prioriza automáticamente recetas con sobras en la despensa. Indicador visual `🍲 Sobras` en el asignador manual |
+| 🍎 **Despensa** | Control cuantitativo de stock con buscador en tiempo real, conversor inteligente de unidades (`g/kg`, `ml/l`, `uds`) y consumo automático al cocinar |
+| 🛒 **Lista de Compra** | Generación inteligente: calcula la diferencia entre el menú planificado y el stock actual. Incluye búsqueda en tiempo real |
+| 🚨 **Modo Nevera** | Botón de pánico que sugiere recetas cocinables al instante con lo que hay en casa |
+| 👥 **Modo Familiar** | Sincronización colaborativa en tiempo real con políticas RLS por familia o uso individual |
+| 🔔 **Notificaciones** | Centro de alertas con historial cronológico y máximo 3 toasts simultáneos para no saturar la pantalla |
+| 🔒 **Acceso por Invitación** | App privada. El acceso es solo para miembros invitados |
 
 ---
 
 ## 🛠️ Stack Tecnológico
 
-*   **Frontend**: React (Hooks, Context, Realtime Hooks) + TypeScript + Vite.
-*   **Design**: Vanilla CSS altamente pulido, Dark Mode y Material UI (MUI).
-*   **Base de Datos**: Supabase (PostgreSQL) con RLS y Realtime.
-*   **Compilación Nativa**: Capacitor.
-*   **Pruebas**: Vitest.
+- **Frontend**: React 19 · TypeScript 6 · Vite 5
+- **Estilos**: Vanilla CSS · Dark Mode · Material UI (MUI)
+- **Backend**: Supabase (PostgreSQL + RLS + Realtime)
+- **Nativo**: Capacitor (Android)
+- **Tests**: Vitest · Testing Library
+- **Lint**: Oxlint
+- **Deploy**: Render (Static Site)
+- **CI/CD**: GitHub Actions
 
 ---
 
-## 🚀 Comenzar a Usar
+## 🚀 Desarrollo local
 
-### Instalación
-1.  Instala las dependencias:
-    ```bash
-    npm install
-    ```
-2.  Configura tus variables de entorno creando un archivo `.env` en la raíz:
-    ```env
-    VITE_SUPABASE_URL=tu-supabase-url
-    VITE_SUPABASE_ANON_KEY=tu-supabase-anon-key
-    ```
-3.  Inicia el servidor de desarrollo:
-    ```bash
-    npm run dev
-    ```
+### 1. Instalar dependencias
+
+```bash
+npm install
+```
+
+### 2. Variables de entorno
+
+Crea un archivo `.env` en la raíz:
+
+```env
+VITE_SUPABASE_URL=tu-supabase-url
+VITE_SUPABASE_ANON_KEY=tu-supabase-anon-key
+```
+
+### 3. Iniciar servidor de desarrollo
+
+```bash
+npm run dev
+```
 
 ---
 
-## 🧪 Pruebas y Compilación
+## 🧪 Scripts disponibles
 
-*   **Ejecutar Tests**:
-    ```bash
-    npm run test
-    ```
-*   **Compilar Producción**:
-    ```bash
-    npm run build
-    ```
-*   **Sincronizar con Móvil (Capacitor)**:
-    ```bash
-    npx cap sync
-    ```
+| Comando | Descripción |
+|---------|-------------|
+| `npm run dev` | Servidor de desarrollo |
+| `npm run build` | Build de producción (`/dist`) |
+| `npm run preview` | Preview del build local |
+| `npm run lint` | Lint con Oxlint |
+| `npm test` | Tests con Vitest |
+| `npm run test:watch` | Tests en modo watch |
+| `npx cap sync` | Sincronizar con Android (Capacitor) |
+
+---
+
+## ⚙️ CI/CD
+
+El pipeline de GitHub Actions se ejecuta automáticamente en cada push y pull request a `main`:
+
+```
+Push / PR ──► 🔍 Lint  ──► 🧪 Tests  ──► 🏗️ Build
+                                              │
+                                    (solo push a main)
+                                              ▼
+                                    🚀 Deploy a Render
+```
+
+### Secrets requeridos en GitHub
+
+| Secret | Descripción |
+|--------|-------------|
+| `VITE_SUPABASE_URL` | URL del proyecto Supabase |
+| `VITE_SUPABASE_ANON_KEY` | Clave anon de Supabase |
+| `RENDER_DEPLOY_HOOK_URL` | Deploy Hook de Render (Settings → Deploy Hook) |
+
+---
+
+## 📁 Estructura del proyecto
+
+```
+src/
+├── components/
+│   ├── auth/          # Pantalla de login
+│   ├── common/        # Componentes reutilizables
+│   ├── recipes/       # Módulo de recetas
+│   ├── planner/       # Planificador semanal
+│   ├── pantry/        # Despensa
+│   ├── nevera/        # Modo nevera / botón de pánico
+│   ├── shopping/      # Lista de la compra
+│   ├── budget/        # Presupuesto
+│   └── family/        # Gestión familiar
+├── hooks/             # Custom hooks
+├── services/          # Integración con Supabase
+├── types/             # Tipos TypeScript
+└── utils/             # Utilidades
+```
+
+---
+
+## 🌐 Demo
+
+🔗 **[https://callaycome.onrender.com](https://callaycome.onrender.com)**
+
+La app es privada y de acceso solo por invitación. Si eres reclutador/a y quieres ver una demo, [contáctame](mailto:alonsogomezana03@gmail.com).
+
+---
+
+<div align="center">
+  Hecho con ❤️ y mucha sazón · Ana Alonso
+</div>
