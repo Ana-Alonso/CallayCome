@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import {
   Calendar,
@@ -17,13 +17,15 @@ import { useGlobalState } from './hooks/useGlobalState';
 import { Box } from './components/common/Box';
 import { Dialogo } from './components/common/Dialogo';
 import { ModalFiltros } from './components/common/ModalFiltros';
-import { Planner } from './components/planner/Planner';
-import { ModoNevera } from './components/nevera/ModoNevera';
-import { Pantry } from './components/pantry/Pantry';
-import { ShoppingList } from './components/shopping/ShoppingList';
-import { AddRecipe } from './components/recipes/AddRecipe';
-import { BudgetTab } from './components/budget/BudgetTab';
-import { MiFamilia } from './components/family/MiFamilia';
+
+const Planner = lazy(() => import('./components/planner/Planner').then(m => ({ default: m.Planner })));
+const ModoNevera = lazy(() => import('./components/nevera/ModoNevera').then(m => ({ default: m.ModoNevera })));
+const Pantry = lazy(() => import('./components/pantry/Pantry').then(m => ({ default: m.Pantry })));
+const ShoppingList = lazy(() => import('./components/shopping/ShoppingList').then(m => ({ default: m.ShoppingList })));
+const AddRecipe = lazy(() => import('./components/recipes/AddRecipe').then(m => ({ default: m.AddRecipe })));
+const BudgetTab = lazy(() => import('./components/budget/BudgetTab').then(m => ({ default: m.BudgetTab })));
+const MiFamilia = lazy(() => import('./components/family/MiFamilia').then(m => ({ default: m.MiFamilia })));
+
 import { Auth } from './components/auth/Auth';
 import { CookieConsent } from './components/legal/CookieConsent';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -435,8 +437,14 @@ export const App = () => {
         </NavTabButton>
       </NavContainer>
 
-      {active_tab === 'plan' && (
-        <Planner
+      <Suspense fallback={
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#888' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>🍳</div>
+          <div style={{ fontSize: 14, fontWeight: 500 }}>Cargando módulo...</div>
+        </div>
+      }>
+        {active_tab === 'plan' && (
+          <Planner
           meal_plan={meal_plan}
           recipes={recipes}
           on_auto_generate={handle_auto_generate_plan}
@@ -515,34 +523,35 @@ export const App = () => {
         />
       )}
 
-      {active_tab === 'familia' && (
-        <MiFamilia
-          user={user}
-          profile={profile}
-          my_families={my_families}
-          suggestions={suggestions}
-          current_role={current_role}
-          handle_login={handle_login}
-          handle_signup={handle_signup}
-          handle_logout={handle_logout}
-          handle_create_family={handle_create_family}
-          handle_join_family={handle_join_family}
-          handle_switch_family={handle_switch_family}
-          handle_leave_family={handle_leave_family}
-          handle_approve_suggestion={handle_approve_suggestion}
-          handle_reject_suggestion={handle_reject_suggestion}
-          handle_vote_suggestion={handle_vote_suggestion}
-          handle_transfer_role={handle_transfer_role}
-          get_family_members={get_family_members}
-          get_family_complaints={get_family_complaints}
-          show_quejometro={show_quejometro}
-          accessibility_options={accessibility_options}
-          update_accessibility={update_accessibility}
-          speak={speak}
-          handle_delete_account={handle_delete_account}
-          handle_change_password={handle_change_password}
-        />
-      )}
+        {active_tab === 'familia' && (
+          <MiFamilia
+            user={user}
+            profile={profile}
+            my_families={my_families}
+            suggestions={suggestions}
+            current_role={current_role}
+            handle_login={handle_login}
+            handle_signup={handle_signup}
+            handle_logout={handle_logout}
+            handle_create_family={handle_create_family}
+            handle_join_family={handle_join_family}
+            handle_switch_family={handle_switch_family}
+            handle_leave_family={handle_leave_family}
+            handle_approve_suggestion={handle_approve_suggestion}
+            handle_reject_suggestion={handle_reject_suggestion}
+            handle_vote_suggestion={handle_vote_suggestion}
+            handle_transfer_role={handle_transfer_role}
+            get_family_members={get_family_members}
+            get_family_complaints={get_family_complaints}
+            show_quejometro={show_quejometro}
+            accessibility_options={accessibility_options}
+            update_accessibility={update_accessibility}
+            speak={speak}
+            handle_delete_account={handle_delete_account}
+            handle_change_password={handle_change_password}
+          />
+        )}
+      </Suspense>
 
       <ModalFiltros
         abierto={is_filter_modal_open}
