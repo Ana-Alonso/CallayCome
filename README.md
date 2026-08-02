@@ -7,14 +7,14 @@
 ![CI](https://github.com/Ana-Alonso/CallayCome/actions/workflows/ci.yml/badge.svg)
 ### La Cocina de la Abuela
 
-Una aplicación híbrida **web + Android** para planificar menús semanales, gestionar la despensa, autogenerar la lista de la compra y coordinar recetas en familia — en tiempo real.
+Una aplicación híbrida **web + Android** para planificar menús semanales, gestionar la despensa, autogenerar la lista de la compra y coordinar recetas en familia — en tiempo real y con pleno cumplimiento de privacidad y RGPD.
 
-[![CI/CD](https://github.com/Ana-Alonso/la-cocina-de-la-abuela/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Ana-Alonso/la-cocina-de-la-abuela/actions/workflows/ci-cd.yml)
 [![Live](https://img.shields.io/badge/🌐%20Live-callaycome.onrender.com-f26841)](https://callaycome.onrender.com)
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?logo=typescript)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ecf8e?logo=supabase)
 ![Render](https://img.shields.io/badge/Deploy-Render-46e3b7?logo=render)
+![RGPD Compliant](https://img.shields.io/badge/RGPD-Cumplimiento%20UE-blue)
 
 </div>
 
@@ -30,6 +30,8 @@ Una aplicación híbrida **web + Android** para planificar menús semanales, ges
 | 🛒 **Lista de Compra** | Generación inteligente: calcula la diferencia entre el menú planificado y el stock actual. Incluye búsqueda en tiempo real |
 | 🚨 **Modo Nevera** | Botón de pánico que sugiere recetas cocinables al instante con lo que hay en casa |
 | 👥 **Modo Familiar** | Sincronización colaborativa en tiempo real con políticas RLS por familia o uso individual |
+| 🔐 **Autenticación Mejorada** | Medidor de fortaleza de contraseña en tiempo real, flujo de recuperación por correo y contraseñas cifradas |
+| 🍪 **Cumplimiento RGPD** | Banner de consentimiento de cookies (0 rastreadores de terceros) y páginas de Política de Privacidad (`/privacy`), Términos (`/terms`) y Cookies (`/cookies`) |
 | 🔔 **Notificaciones** | Centro de alertas con historial cronológico y máximo 3 toasts simultáneos para no saturar la pantalla |
 | 🔒 **Acceso por Invitación** | App privada. El acceso es solo para miembros invitados |
 
@@ -114,7 +116,8 @@ Push / PR ──► 🔍 Lint  ──► 🧪 Tests  ──► 🏗️ Build
 ```
 src/
 ├── components/
-│   ├── auth/          # Pantalla de login
+│   ├── auth/          # Pantalla de login y recuperación con medidor de fortaleza
+│   ├── legal/         # Banner de cookies RGPD
 │   ├── common/        # Componentes reutilizables
 │   ├── recipes/       # Módulo de recetas
 │   ├── planner/       # Planificador semanal
@@ -123,10 +126,14 @@ src/
 │   ├── shopping/      # Lista de la compra
 │   ├── budget/        # Presupuesto
 │   └── family/        # Gestión familiar
+├── pages/             # Páginas legales (PrivacyPolicy, TermsOfService, CookiePolicy)
 ├── hooks/             # Custom hooks
 ├── services/          # Integración con Supabase
 ├── types/             # Tipos TypeScript
 └── utils/             # Utilidades
+public/
+├── robots.txt         # Configuración para crawlers
+└── sitemap.xml        # Sitemap XML
 ```
 
 ---
