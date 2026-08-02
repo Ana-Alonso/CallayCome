@@ -7,7 +7,8 @@ export const useLocalStorageSync = (
   meal_plan: MealPlanDay[],
   hide_breakfasts: boolean,
   show_quejometro: boolean,
-  cooked_days: number[]
+  cooked_days: number[],
+  start_date?: string | null
 ) => {
   useEffect(() => {
     localStorage.setItem('local_pantry', JSON.stringify(pantry_items));
@@ -32,4 +33,12 @@ export const useLocalStorageSync = (
   useEffect(() => {
     localStorage.setItem('calla_y_come_cooked_days', JSON.stringify(cooked_days));
   }, [cooked_days]);
+
+  useEffect(() => {
+    if (start_date) {
+      localStorage.setItem('calla_y_come_start_date', start_date);
+    } else if (start_date === null) {
+      localStorage.removeItem('calla_y_come_start_date');
+    }
+  }, [start_date]);
 };

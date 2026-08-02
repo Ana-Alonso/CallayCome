@@ -349,7 +349,11 @@ export const usePlanner = ({
 
   const handle_change_start_date = async (date: string | null): Promise<void> => {
     set_start_date(date);
-    localStorage.setItem('calla_y_come_start_date', date || '');
+    if (date) {
+      localStorage.setItem('calla_y_come_start_date', date);
+    } else {
+      localStorage.removeItem('calla_y_come_start_date');
+    }
     if (set_cooked_days) set_cooked_days([]);
 
     const supabase = get_supabase_client();

@@ -221,6 +221,7 @@ export const useGlobalState = () => {
 
         if (start_date_val) {
           set_start_date(start_date_val);
+          localStorage.setItem('calla_y_come_start_date', start_date_val);
         } else {
           const local_start_date = localStorage.getItem('calla_y_come_start_date');
           set_start_date(local_start_date || null);
@@ -238,7 +239,12 @@ export const useGlobalState = () => {
       } else {
         // Individual User Mode (No active family)
         const local_start_date = localStorage.getItem('calla_y_come_start_date');
-        set_start_date(local_start_date || null);
+        if (local_start_date) {
+          set_start_date(local_start_date);
+          localStorage.setItem('calla_y_come_start_date', local_start_date);
+        } else {
+          set_start_date(null);
+        }
 
         await Promise.all([
           recipes_handler.load_recipes(),
@@ -566,7 +572,7 @@ export const useGlobalState = () => {
   };
 
   // Sync to local storage
-  useLocalStorageSync(pantry_items, shopping_items, meal_plan, hide_breakfasts, show_quejometro, cooked_days);
+  useLocalStorageSync(pantry_items, shopping_items, meal_plan, hide_breakfasts, show_quejometro, cooked_days, start_date);
 
   useEffect(() => {
     recipes_handler.load_recipes();
