@@ -25,6 +25,10 @@ import { AddRecipe } from './components/recipes/AddRecipe';
 import { BudgetTab } from './components/budget/BudgetTab';
 import { MiFamilia } from './components/family/MiFamilia';
 import { Auth } from './components/auth/Auth';
+import { CookieConsent } from './components/legal/CookieConsent';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import CookiePolicy from './pages/CookiePolicy';
 import {
   AppContainer,
   HeaderContainer,
@@ -285,6 +289,12 @@ export const App = () => {
     );
   }
 
+  // ── Rutas de páginas legales (accesibles sin login) ──
+  const pathname = window.location.pathname;
+  if (pathname === '/privacy') return <><PrivacyPolicy /><CookieConsent /></>;
+  if (pathname === '/terms') return <><TermsOfService /><CookieConsent /></>;
+  if (pathname === '/cookies') return <><CookiePolicy /><CookieConsent /></>;
+
   if (!user) {
     return (
       <AppContainer>
@@ -309,6 +319,7 @@ export const App = () => {
           on_signup={handle_signup}
           on_success={() => {}}
         />
+        <CookieConsent />
       </AppContainer>
     );
   }
@@ -320,6 +331,7 @@ export const App = () => {
 
   return (
     <AppContainer className={accessibility_classes}>
+      <CookieConsent />
       <ToastContainer>
         {toast_messages.map(toast => (
           <ToastItem key={toast.id}>
