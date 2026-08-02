@@ -59,26 +59,25 @@ export const ShoppingList = ({
   const handle_share_whatsapp = async () => {
     if (shopping_items.length === 0) return;
 
+    const pending = shopping_items.filter(i => !i.purchased);
     const header = `🛒 *Lista de la Compra - Calla y Come* 🍳\n\n`;
-    const body = shopping_items
-      .map(item => `${item.purchased ? '✅' : '⬜'} ${item.quantity} ${item.unit} de ${item.ingredient_name}`)
-      .join('\n');
-    const footer = `\n\n_Generado por Calla y Come_`;
+    const body = pending.length > 0 
+      ? pending.map(item => `⬜ ${item.quantity} ${item.unit} ${item.ingredient_name}`).join('\n')
+      : `✅ ¡Todo comprado!`;
+    const footer = `\n\n_Enviado desde Calla y Come_`;
 
     const fullText = `${header}${body}${footer}`;
 
     try {
-      await navigator.clipboard.writeText(fullText);
-      const toastEvent = new CustomEvent('in-app-notification', {
-        detail: {
-          title: "Lista Copiada 📋",
-          body: "Texto copiado al portapapeles. ¡Ya puedes pegarlo en WhatsApp!"
-        }
-      });
-      window.dispatchEvent(toastEvent);
-    } catch (e) {
-      console.error(e);
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(fullText);
+      }
+    } catch {
+      // Clipboard fallback
     }
+
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(fullText)}`;
+    window.open(waUrl, '_blank');
   };
 
   const section_header = (icon: React.ReactNode, label: string, count: number) => (

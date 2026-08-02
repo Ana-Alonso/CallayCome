@@ -246,6 +246,13 @@ export const Planner = ({
             clase_css="btn-sm"
           />
           <Boton
+            texto="Imprimir / PDF 📄"
+            on_click={() => window.print()}
+            variante="outlined"
+            color="secondary"
+            clase_css="btn-sm"
+          />
+          <Boton
             texto="Filtros"
             on_click={on_open_filters}
             variante="outlined"
