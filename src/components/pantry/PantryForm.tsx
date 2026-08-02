@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Barcode, Search, AlertCircle } from 'lucide-react';
+import { Plus, Barcode, Search, AlertCircle, Mic } from 'lucide-react';
 import { Box } from '../common/Box';
 import { Boton } from '../common/Boton';
 import { CampoTexto } from '../common/CampoTexto';
@@ -18,6 +18,7 @@ export const PantryForm = ({ on_add }: PantryFormProps) => {
   const [barcode, set_barcode] = useState('');
   const [loading_barcode, set_loading_barcode] = useState(false);
   const [barcode_error, set_barcode_error] = useState('');
+  const [is_listening, set_is_listening] = useState(false);
 
   const handle_submit = (e: React.FormEvent): void => {
     e.preventDefault();
@@ -27,6 +28,29 @@ export const PantryForm = ({ on_add }: PantryFormProps) => {
     on_add(nombre, cantidad, unidad);
     set_nombre('');
     set_cantidad(0);
+  };
+
+  const handle_voice_dictation = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Tu navegador o dispositivo no soporta dictado por voz.");
+      return;
+    }
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'es-ES';
+      recognition.interimResults = false;
+      recognition.onstart = () => set_is_listening(true);
+      recognition.onend = () => set_is_listening(false);
+      recognition.onerror = () => set_is_listening(false);
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript) set_nombre(transcript);
+      };
+      recognition.start();
+    } catch {
+      set_is_listening(false);
+    }
   };
 
   const handle_barcode_lookup = async (e: React.FormEvent) => {
@@ -60,27 +84,48 @@ export const PantryForm = ({ on_add }: PantryFormProps) => {
 
   return (
     <Box component="form" onSubmit={handle_submit} className="despensa-form">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
         <FormLabel style={{ marginBottom: 0 }}>Nombre del Alimento</FormLabel>
-        <button
-          type="button"
-          onClick={() => set_show_barcode_modal(true)}
-          style={{
-            background: 'rgba(242, 104, 65, 0.12)',
-            border: '1px solid rgba(242, 104, 65, 0.3)',
-            borderRadius: 6,
-            padding: '4px 10px',
-            color: '#f26841',
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4
-          }}
-        >
-          <Barcode size={14} /> Escanear EAN / Código
-        </button>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            type="button"
+            onClick={handle_voice_dictation}
+            style={{
+              background: is_listening ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.12)',
+              border: is_listening ? '1px solid #ef4444' : '1px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: 6,
+              padding: '4px 10px',
+              color: is_listening ? '#ef4444' : '#3b82f6',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+          >
+            <Mic size={14} className={is_listening ? 'animate-pulse' : ''} /> {is_listening ? 'Escuchando...' : 'Dictar por voz 🎤'}
+          </button>
+          <button
+            type="button"
+            onClick={() => set_show_barcode_modal(true)}
+            style={{
+              background: 'rgba(242, 104, 65, 0.12)',
+              border: '1px solid rgba(242, 104, 65, 0.3)',
+              borderRadius: 6,
+              padding: '4px 10px',
+              color: '#f26841',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+          >
+            <Barcode size={14} /> Escanear EAN
+          </button>
+        </div>
       </div>
 
       <FormGroup>
