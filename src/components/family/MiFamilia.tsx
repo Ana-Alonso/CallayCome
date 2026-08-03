@@ -14,7 +14,8 @@ import {
   PantryInputGrid,
   FlexRow,
   StatusBadge,
-  PantryItemName
+  PantryItemName,
+  Box
 } from '../common';
 import type { FamilyMember, RecipeSuggestion, Profile } from '../../types';
 import type { User } from '@supabase/supabase-js';
@@ -400,6 +401,27 @@ export const MiFamilia = ({
     <PageContainer>
       <TitleH2>Mi Familia 🏠</TitleH2>
       <TextMuted style={{ fontSize: 13 }}>Usuario: {profile?.email || user.email}</TextMuted>
+
+      {profile?.active_family_id && (
+        <Box style={{
+          backgroundColor: 'rgba(59, 130, 246, 0.08)',
+          border: '1px solid rgba(59, 130, 246, 0.25)',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          marginTop: '12px',
+          color: '#60A5FA',
+          fontSize: '13px',
+          textAlign: 'left',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <Users size={22} style={{ flexShrink: 0 }} />
+          <div>
+            <strong>Modo Unidad Familiar Activo:</strong> Tu menú, lista de compra y despensa se comparten en grupo con tus familiares.
+          </div>
+        </Box>
+      )}
 
       <Spacer height={16} />
 

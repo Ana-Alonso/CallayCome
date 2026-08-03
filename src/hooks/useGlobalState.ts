@@ -114,6 +114,19 @@ export const useGlobalState = () => {
     return cached ? JSON.parse(cached) : { high_contrast: false, large_text: false, read_aloud: false };
   });
 
+  const is_family_active = Boolean(
+    profile?.active_family_id || 
+    (my_families && my_families.length > 0 && profile?.active_family_id !== null) ||
+    localStorage.getItem('calla_y_come_family_unit_active') === 'true'
+  );
+
+  useEffect(() => {
+    if (profile) {
+      const isActive = Boolean(profile.active_family_id);
+      localStorage.setItem('calla_y_come_family_unit_active', String(isActive));
+    }
+  }, [profile?.active_family_id]);
+
   // Live refs — always point to the latest state even inside stale closures
   const meal_plan_ref = useRef<MealPlanDay[]>(meal_plan);
   const pantry_items_ref = useRef<PantryItem[]>(pantry_items);
@@ -804,6 +817,7 @@ export const useGlobalState = () => {
     set_cooked_days,
     increment_recipe_vote,
     decrement_recipe_vote,
-    recipe_weights
+    recipe_weights,
+    is_family_active
   };
 };
