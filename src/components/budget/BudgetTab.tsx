@@ -22,7 +22,6 @@ import {
   Box, 
   CampoTexto, 
   Dialogo, 
-  IconoBoton, 
   PantryInputGrid
 } from '../common';
 import type { MealPlanDay, Recipe, IngredientMapping } from '../../types';
@@ -656,7 +655,16 @@ export const BudgetTab = ({
                   </div>
 
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <span style={{ fontSize: '16px', fontWeight: '800', color: ing.isMapped ? '#81c784' : 'rgba(255,255,255,0.6)' }}>
+                    <span style={{
+                      fontSize: '15px',
+                      fontWeight: '800',
+                      color: ing.isMapped ? '#4ADE80' : '#FFA726',
+                      backgroundColor: ing.isMapped ? 'rgba(74, 222, 128, 0.12)' : 'rgba(255, 167, 38, 0.12)',
+                      border: `1px solid ${ing.isMapped ? 'rgba(74, 222, 128, 0.25)' : 'rgba(255, 167, 38, 0.25)'}`,
+                      padding: '3px 9px',
+                      borderRadius: '8px',
+                      display: 'inline-block'
+                    }}>
                       {ing.cost.toFixed(2)} €
                     </span>
                   </div>
@@ -698,14 +706,26 @@ export const BudgetTab = ({
                     <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)' }}>
                       {ing.recipeCount} {ing.recipeCount === 1 ? 'receta' : 'recetas'}
                     </span>
-                    <Box style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '50%' }}>
-                      <IconoBoton 
-                        on_click={() => open_mapper_for_ingredient(ing.name)}
-                        color="primary"
-                      >
-                        {ing.isMapped ? <Edit2 size={14} /> : <Search size={14} />}
-                      </IconoBoton>
-                    </Box>
+                    <button
+                      type="button"
+                      onClick={() => open_mapper_for_ingredient(ing.name)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        color: '#38BDF8',
+                        cursor: 'pointer',
+                        padding: 0
+                      }}
+                      title="Buscar o vincular producto"
+                    >
+                      {ing.isMapped ? <Edit2 size={15} color="#38BDF8" /> : <Search size={15} color="#38BDF8" />}
+                    </button>
                   </Box>
                 </Box>
               </Box>
