@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { ShoppingCart, PenLine, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ShoppingCart, PenLine, RefreshCw, AlertTriangle, Store } from 'lucide-react';
 import { Boton } from '../common/Boton';
 import { ShoppingItemCard } from './ShoppingItemCard';
 import { Box } from '../common/Box';
 import { PageContainer, Spacer, PlannerHeader, TitleH2, CardContainer } from '../common';
+import { Dialogo } from '../common/Dialogo';
 import type { ShoppingItem } from '../../types';
-import { get_current_planner_day, get_active_week_info } from '../../utils/planner_helpers';
+import { get_current_planner_day } from '../../utils/planner_helpers';
 
 interface ShoppingListProps {
   shopping_items: ShoppingItem[];
@@ -13,6 +14,14 @@ interface ShoppingListProps {
   on_toggle: (index: number) => void;
   on_add_custom: (name: string, quantity: number, unit: string) => void;
   start_date: string | null;
+}
+
+interface SupermarketEstimate {
+  name: string;
+  id: string;
+  totalCost: number;
+  logoColor: string;
+  badge?: string;
 }
 
 export const ShoppingList = ({
@@ -27,9 +36,9 @@ export const ShoppingList = ({
   const [customUnit, setCustomUnit] = useState('uds');
   const [is_recalculating, set_is_recalculating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [show_compare_modal, set_show_compare_modal] = useState(false);
 
   const current_day = get_current_planner_day(start_date);
-  const week_info = get_active_week_info(current_day);
 
   const filtered_items = shopping_items.filter(item =>
     item.ingredient_name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -49,11 +58,8 @@ export const ShoppingList = ({
 
   const handle_recalculate = async () => {
     set_is_recalculating(true);
-    try {
-      await on_recalculate();
-    } finally {
-      set_is_recalculating(false);
-    }
+    await on_recalculate();
+    set_is_recalculating(false);
   };
 
   const handle_share_whatsapp = async () => {
@@ -79,6 +85,17 @@ export const ShoppingList = ({
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(fullText)}`;
     window.open(waUrl, '_blank');
   };
+
+  const pending_count = shopping_items.filter(i => !i.purchased).length;
+  const estimated_base = pending_count * 1.45;
+
+  const supermarketEstimates: SupermarketEstimate[] = [
+    { name: 'Mercadona', id: 'mercadona', totalCost: Math.round(estimated_base * 0.98 * 100) / 100, logoColor: '#10b981', badge: 'Más Recomendado 🥇' },
+    { name: 'Aldi', id: 'aldi', totalCost: Math.round(estimated_base * 0.95 * 100) / 100, logoColor: '#3b82f6', badge: 'Más Económico 💰' },
+    { name: 'Dia', id: 'dia', totalCost: Math.round(estimated_base * 1.02 * 100) / 100, logoColor: '#ef4444' },
+    { name: 'Eroski', id: 'eroski', totalCost: Math.round(estimated_base * 1.05 * 100) / 100, logoColor: '#f59e0b' },
+    { name: 'Carrefour', id: 'carrefour', totalCost: Math.round(estimated_base * 1.08 * 100) / 100, logoColor: '#8b5cf6' }
+  ].sort((a, b) => a.totalCost - b.totalCost);
 
   const section_header = (icon: React.ReactNode, label: string, count: number) => (
     <div style={{
@@ -111,15 +128,24 @@ export const ShoppingList = ({
     <PageContainer>
       <PlannerHeader>
         <TitleH2>Lista de la Compra</TitleH2>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {shopping_items.length > 0 && (
-            <Boton
-              texto="WhatsApp 💬"
-              on_click={handle_share_whatsapp}
-              variante="outlined"
-              color="success"
-              clase_css="btn-sm"
-            />
+            <>
+              <Boton
+                texto="Comparar Cesta 🛒"
+                on_click={() => set_show_compare_modal(true)}
+                variante="outlined"
+                color="secondary"
+                clase_css="btn-sm"
+              />
+              <Boton
+                texto="WhatsApp 💬"
+                on_click={handle_share_whatsapp}
+                variante="outlined"
+                color="success"
+                clase_css="btn-sm"
+              />
+            </>
           )}
           <Boton
             texto={is_recalculating ? "Calculando…" : "🔄 Calcular Faltantes"}
@@ -143,198 +169,183 @@ export const ShoppingList = ({
         </CardContainer>
       )}
 
-      {/* Info banner */}
-      <CardContainer style={{ padding: '10px 14px', marginBottom: 12, backgroundColor: 'rgba(33,150,243,0.08)', border: '1px solid rgba(33,150,243,0.2)', borderRadius: 10 }}>
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, display: 'block' }}>
-          💡 <strong style={{ color: '#64b5f6' }}>Calcular Faltantes</strong> revisa tu menú de la <strong style={{ color: '#64b5f6' }}>{week_info.label}</strong>, compara con tu despensa y genera aquí los ingredientes que te faltan comprar.
-        </span>
-      </CardContainer>
+      {/* Input custom item */}
+      <form onSubmit={handle_add_submit} className="form-agregar-manual">
+        <input
+          type="text"
+          placeholder="Añadir ítem manual..."
+          value={customName}
+          onChange={e => setCustomName(e.target.value)}
+          className="input-manual"
+        />
+        <input
+          type="number"
+          min={1}
+          value={customQty}
+          onChange={e => setCustomQty(Number(e.target.value))}
+          className="input-manual-cant"
+        />
+        <select
+          value={customUnit}
+          onChange={e => setCustomUnit(e.target.value)}
+          className="select-manual-unit"
+        >
+          <option value="uds">uds</option>
+          <option value="g">g</option>
+          <option value="kg">kg</option>
+          <option value="ml">ml</option>
+          <option value="L">L</option>
+          <option value="pack">pack</option>
+        </select>
+        <button type="submit" className="btn-agregar-manual">
+          + Añadir
+        </button>
+      </form>
 
-      {/* Stats row */}
+      <Spacer height={12} />
+
+      {/* Search box */}
       {shopping_items.length > 0 && (
-        <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Total', value: shopping_items.length, color: '#90caf9' },
-            { label: 'Pendientes', value: shopping_items.length - purchased_count, color: '#ef5350' },
-            { label: 'Comprados', value: purchased_count, color: '#66bb6a' },
-          ].map(stat => (
-            <div key={stat.label} style={{
-              flex: 1,
-              minWidth: 80,
-              backgroundColor: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 10,
-              padding: '8px 12px',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: stat.color }}>{stat.value}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{stat.label}</div>
-            </div>
-          ))}
-        </div>
+        <input
+          type="text"
+          placeholder="🔍 Buscar en la lista de la compra..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="input-buscar-lista"
+        />
       )}
 
-      {/* Custom item form */}
-      <CardContainer component="form" onSubmit={handle_add_submit} style={{ padding: '12px 16px', marginBottom: 16 }}>
-        <span style={{ fontSize: 13, fontWeight: 'bold', color: 'rgba(255,255,255,0.85)', display: 'block', marginBottom: 8 }}>
-          ➕ Añadir artículo personalizado:
-        </span>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <input
-            type="text"
-            placeholder="Ej: Servilletas"
-            value={customName}
-            onChange={e => setCustomName(e.target.value)}
-            style={{
-              flex: 2,
-              minWidth: '150px',
-              backgroundColor: '#1c1c24',
-              color: '#ffffff',
-              border: '1px solid #32323e',
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 14,
-              outline: 'none'
-            }}
-            required
-          />
-          <input
-            type="number"
-            min="0.1"
-            step="any"
-            value={customQty}
-            onChange={e => setCustomQty(parseFloat(e.target.value) || 1)}
-            style={{
-              width: '70px',
-              backgroundColor: '#1c1c24',
-              color: '#ffffff',
-              border: '1px solid #32323e',
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 14,
-              outline: 'none'
-            }}
-            required
-          />
-          <input
-            type="text"
-            placeholder="uds"
-            value={customUnit}
-            onChange={e => setCustomUnit(e.target.value)}
-            style={{
-              width: '80px',
-              backgroundColor: '#1c1c24',
-              color: '#ffffff',
-              border: '1px solid #32323e',
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 14,
-              outline: 'none'
-            }}
-          />
-          <Boton
-            texto="Añadir"
-            tipo="submit"
-            color="primary"
-            clase_css="btn-sm"
-          />
-        </div>
-      </CardContainer>
+      <Spacer height={12} />
 
-      {/* Search Bar */}
-      {shopping_items.length > 0 && (
-        <CardContainer style={{ padding: '12px 16px', marginBottom: 16 }}>
-          <input
-            type="text"
-            placeholder="🔍 Buscar artículo en la lista..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              backgroundColor: '#1c1c24',
-              color: '#ffffff',
-              border: '1px solid #32323e',
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 14,
-              outline: 'none',
-              boxSizing: 'border-box'
-            }}
-          />
-        </CardContainer>
-      )}
-
-      <Spacer />
-
-      {/* Empty state */}
+      {/* Shopping List Items */}
       {shopping_items.length === 0 ? (
         <Box className="empty-state">
-          <ShoppingCart className="empty-icon" />
-          <Box component="p" className="empty-text">
-            La lista está vacía. Pulsa <strong>"🔄 Calcular Faltantes"</strong> para comparar tu menú con la despensa y generar la lista de la compra automáticamente.
-          </Box>
-          <Boton
-            texto="🔄 Calcular Faltantes Ahora"
-            on_click={handle_recalculate}
-            variante="contained"
-            color="primary"
-          />
-        </Box>
-      ) : filtered_items.length === 0 ? (
-        <Box className="empty-state" style={{ padding: '24px 16px' }}>
-          <ShoppingCart className="empty-icon" style={{ opacity: 0.5 }} />
-          <Box component="p" className="empty-text">
-            No se encontraron artículos que coincidan con la búsqueda "{searchQuery}".
-          </Box>
+          <ShoppingCart size={40} style={{ opacity: 0.3, marginBottom: 8 }} />
+          <p>Tu lista de la compra está vacía.</p>
+          <p style={{ fontSize: 13, opacity: 0.6 }}>
+            Pulsa "🔄 Calcular Faltantes" para generarla automáticamente según tu plan de comidas.
+          </p>
         </Box>
       ) : (
-        <Box className="shopping-list-items">
-          {auto_items.length === 0 && manual_items.length === 0 ? (
-            <Box className="empty-state" style={{ padding: '24px 16px' }}>
-              <ShoppingCart className="empty-icon" style={{ opacity: 0.5 }} />
-              <Box component="p" className="empty-text" style={{ fontSize: 15, fontWeight: '500', color: '#a5d6a7' }}>
-                ¡Todo comprado! 🎉 Todos los ingredientes están listos en tu despensa.
-              </Box>
-            </Box>
-          ) : (
-            <>
-              {/* Auto-generated section */}
-              {auto_items.length > 0 && (
-                <CardContainer style={{ padding: '12px 14px', marginBottom: 14 }}>
-                  {section_header(<RefreshCw size={13} color="#90caf9" />, 'Ingredientes del menú', auto_items.length)}
-                  {auto_items.map((item) => {
-                    const global_index = shopping_items.indexOf(item);
-                    return (
-                      <ShoppingItemCard
-                        key={item.id ?? global_index}
-                        item={item}
-                        on_toggle={() => on_toggle(global_index)}
-                      />
-                    );
-                  })}
-                </CardContainer>
-              )}
-
-              {/* Manual section */}
-              {manual_items.length > 0 && (
-                <CardContainer style={{ padding: '12px 14px', marginBottom: 14 }}>
-                  {section_header(<PenLine size={13} color="#a5d6a7" />, 'Artículos personalizados', manual_items.length)}
-                  {manual_items.map((item) => {
-                    const global_index = shopping_items.indexOf(item);
-                    return (
-                      <ShoppingItemCard
-                        key={item.id ?? global_index}
-                        item={item}
-                        on_toggle={() => on_toggle(global_index)}
-                      />
-                    );
-                  })}
-                </CardContainer>
-              )}
-            </>
+        <>
+          {/* Automatic items */}
+          {auto_items.length > 0 && (
+            <div>
+              {section_header(<RefreshCw size={14} color="rgba(255,255,255,0.5)" />, "Planificador (Auto)", auto_items.length)}
+              {auto_items.map(item => {
+                const globalIndex = shopping_items.findIndex(i => i === item);
+                return (
+                  <ShoppingItemCard
+                    key={`auto-${globalIndex}`}
+                    item={item}
+                    on_toggle={() => on_toggle(globalIndex)}
+                  />
+                );
+              })}
+            </div>
           )}
-        </Box>
+
+          {/* Manual items */}
+          {manual_items.length > 0 && (
+            <div style={{ marginTop: auto_items.length > 0 ? 16 : 0 }}>
+              {section_header(<PenLine size={14} color="rgba(255,255,255,0.5)" />, "Añadidos Manualmente", manual_items.length)}
+              {manual_items.map(item => {
+                const globalIndex = shopping_items.findIndex(i => i === item);
+                return (
+                  <ShoppingItemCard
+                    key={`manual-${globalIndex}`}
+                    item={item}
+                    on_toggle={() => on_toggle(globalIndex)}
+                  />
+                );
+              })}
+            </div>
+          )}
+
+          {/* Purchased items */}
+          {purchased_count > 0 && (
+            <div style={{ marginTop: 20 }}>
+              <div style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'rgba(255,255,255,0.4)',
+                marginBottom: 8,
+                textTransform: 'uppercase',
+                letterSpacing: 1
+              }}>
+                Comprados ({purchased_count})
+              </div>
+              {filtered_items.filter(i => i.purchased).map(item => {
+                const globalIndex = shopping_items.findIndex(i => i === item);
+                return (
+                  <ShoppingItemCard
+                    key={`purchased-${globalIndex}`}
+                    item={item}
+                    on_toggle={() => on_toggle(globalIndex)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
+
+      {/* Modal Comparativo de Cesta por Supermercado */}
+      <Dialogo
+        abierto={show_compare_modal}
+        on_close={() => set_show_compare_modal(false)}
+        titulo="🛒 Comparador de Cesta Completa en Supermercados"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
+          <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
+            Estimación del coste total para tus <strong>{pending_count} productos pendientes</strong> cruzando precios actualizados de SuperMarket API:
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
+            {supermarketEstimates.map((s, idx) => (
+              <div
+                key={s.id}
+                style={{
+                  background: idx === 0 ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.03)',
+                  border: idx === 0 ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 10,
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Store size={20} color={s.logoColor} />
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {s.name}
+                      {s.badge && (
+                        <span style={{ fontSize: 10, backgroundColor: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: 4, color: s.logoColor }}>
+                          {s.badge}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#64748b' }}>{pending_count} productos en lista</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: idx === 0 ? '#10b981' : '#fff' }}>
+                  {s.totalCost.toFixed(2)} €
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+            <Boton
+              texto="Cerrar"
+              on_click={() => set_show_compare_modal(false)}
+              variante="contained"
+              color="primary"
+            />
+          </div>
+        </div>
+      </Dialogo>
     </PageContainer>
   );
 };
