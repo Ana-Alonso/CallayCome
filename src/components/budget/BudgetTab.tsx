@@ -637,68 +637,75 @@ export const BudgetTab = ({
                   borderRadius: '12px',
                   padding: '12px 14px',
                   display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '10px',
+                  flexDirection: 'column',
+                  gap: '8px',
                   width: '100%',
                   boxSizing: 'border-box',
                   transition: 'transform 0.2s',
                 }}
               >
-                <Box style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left', flex: '1 1 200px', minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '14px' }}>{ing.name}</span>
-                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>
+                {/* ROW 1: INGREDIENT NAME & QTY (LEFT) | COST PRICE (RIGHT) */}
+                <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0, textAlign: 'left' }}>
+                    <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {ing.name}
+                    </span>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', flexShrink: 0 }}>
                       ({ing.quantity} {ing.unit})
                     </span>
                   </div>
-                  
-                  {ing.isMapped ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', flexWrap: 'wrap' }}>
-                      <span style={{
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        backgroundColor: ing.supermarket === 'mercadona' ? '#00A859' :
-                                         ing.supermarket === 'carrefour' ? '#003893' :
-                                         ing.supermarket === 'dia' ? '#E2001A' :
-                                         ing.supermarket === 'aldi' ? '#002C5B' : '#005CA9',
-                        color: '#fff',
-                        fontWeight: 'bold',
-                        fontSize: '9px',
-                        textTransform: 'uppercase'
-                      }}>
-                        {ing.supermarket}
-                      </span>
-                      <span style={{ color: 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
-                        {ing.matchedProdName}
-                      </span>
-                    </div>
-                  ) : (
-                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <HelpCircle size={12} style={{ color: '#FFA726' }} />
-                      <span>Precio estimado (Sin vincular a supermercado)</span>
-                    </div>
-                  )}
+
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <span style={{ fontSize: '16px', fontWeight: '800', color: ing.isMapped ? '#81c784' : 'rgba(255,255,255,0.6)' }}>
+                      {ing.cost.toFixed(2)} €
+                    </span>
+                  </div>
                 </Box>
 
-                <Box style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'flex-end', flexShrink: 0 }}>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '15px', fontWeight: '800', color: ing.isMapped ? '#81c784' : 'rgba(255,255,255,0.6)' }}>
-                      {ing.cost.toFixed(2)} €
-                    </div>
-                    <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)' }}>
-                      {ing.recipeCount} {ing.recipeCount === 1 ? 'receta' : 'recetas'}
-                    </div>
+                {/* ROW 2: SUPERMARKET & PRODUCT NAME (LEFT) | RECIPES & EDIT BUTTON (RIGHT) */}
+                <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '8px' }}>
+                  <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                    {ing.isMapped ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px' }}>
+                        <span style={{
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          backgroundColor: ing.supermarket === 'mercadona' ? '#00A859' :
+                                           ing.supermarket === 'carrefour' ? '#003893' :
+                                           ing.supermarket === 'dia' ? '#E2001A' :
+                                           ing.supermarket === 'aldi' ? '#002C5B' : '#005CA9',
+                          color: '#fff',
+                          fontWeight: 'bold',
+                          fontSize: '9px',
+                          textTransform: 'uppercase',
+                          flexShrink: 0
+                        }}>
+                          {ing.supermarket}
+                        </span>
+                        <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {ing.matchedProdName}
+                        </span>
+                      </div>
+                    ) : (
+                      <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <HelpCircle size={12} style={{ color: '#FFA726', flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Precio estimado (Sin vincular)</span>
+                      </div>
+                    )}
                   </div>
 
-                  <Box style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '50%' }}>
-                    <IconoBoton 
-                      on_click={() => open_mapper_for_ingredient(ing.name)}
-                      color="primary"
-                    >
-                      {ing.isMapped ? <Edit2 size={14} /> : <Search size={14} />}
-                    </IconoBoton>
+                  <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)' }}>
+                      {ing.recipeCount} {ing.recipeCount === 1 ? 'receta' : 'recetas'}
+                    </span>
+                    <Box style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '50%' }}>
+                      <IconoBoton 
+                        on_click={() => open_mapper_for_ingredient(ing.name)}
+                        color="primary"
+                      >
+                        {ing.isMapped ? <Edit2 size={14} /> : <Search size={14} />}
+                      </IconoBoton>
+                    </Box>
                   </Box>
                 </Box>
               </Box>
