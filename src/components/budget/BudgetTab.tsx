@@ -190,19 +190,23 @@ export const BudgetTab = ({
       ? '#ffa726' 
       : '#81c784';
 
-  const handle_search_api = async () => {
-    if (!search_query.trim()) return;
+  const trigger_product_search = async (queryStr: string) => {
+    if (!queryStr.trim()) return;
     setIsSearching(true);
     setSearchResults([]);
     setSelectedProduct(null);
     try {
-      const results = await searchProducts(search_query.trim(), preferred_supermarket);
-      setSearchResults(results.slice(0, 8));
+      const results = await searchProducts(queryStr.trim(), preferred_supermarket);
+      setSearchResults(results.slice(0, 15));
     } catch (e: any) {
-      alert(e.message || "Error al buscar productos");
+      console.error("Error al buscar productos:", e);
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const handle_search_api = async () => {
+    await trigger_product_search(search_query);
   };
 
   const handle_auto_map_all = async () => {
@@ -272,12 +276,12 @@ export const BudgetTab = ({
     setSearchQuery('');
   };
 
-  const open_mapper_for_ingredient = (ingName: string) => {
+  const open_mapper_for_ingredient = async (ingName: string) => {
     setMappingIngredientName(ingName);
     setSearchQuery(ingName);
     setIsSearchOpen(true);
     setSelectedProduct(null);
-    setSearchResults([]);
+    await trigger_product_search(ingName);
   };
 
   return (
