@@ -227,13 +227,6 @@ export const Planner = ({
             color="error"
             clase_css="btn-sm"
           />
-          <Boton
-            texto="🗑️ Limpiar"
-            on_click={on_clear}
-            variante="outlined"
-            color="error"
-            clase_css="btn-sm"
-          />
           {pending_suggestions > 0 && (
             <Boton
               texto={`${pending_suggestions} sugerencia${pending_suggestions > 1 ? "s" : ""}`}
