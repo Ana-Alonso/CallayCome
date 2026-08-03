@@ -81,15 +81,17 @@ export const get_average_unit_weight_grams = (ingredientName: string): number =>
   const name = ingredientName.toLowerCase().trim();
   if (name.includes('huevo')) return 60;
   if (name.includes('ajo') || name.includes('diente')) return 5;
-  if (name.includes('limón') || name.includes('limon') || name.includes('naranja')) return 120;
-  if (name.includes('manzana') || name.includes('pera') || name.includes('plátano') || name.includes('platano')) return 150;
-  if (name.includes('pan') || name.includes('rebanada')) return 30;
+  if (name.includes('limón') || name.includes('limon') || name.includes('naranja') || name.includes('lima') || name.includes('mandarina')) return 120;
+  if (name.includes('manzana') || name.includes('pera') || name.includes('plátano') || name.includes('platano') || name.includes('melocotón') || name.includes('kiwi')) return 150;
+  if (name.includes('aguacate')) return 180;
+  if (name.includes('calabacín') || name.includes('calabacin') || name.includes('berenjena') || name.includes('pepino')) return 250;
   if (name.includes('zanahoria')) return 80;
-  if (name.includes('pimiento')) return 150;
-  if (name.includes('tomate')) return 150;
-  if (name.includes('cebolla')) return 150;
-  if (name.includes('patata') || name.includes('papa')) return 150;
-  // Default average weight for 1 produce unit
+  if (name.includes('pimiento') || name.includes('tomate') || name.includes('cebolla') || name.includes('patata') || name.includes('papa')) return 150;
+  if (name.includes('filete') || name.includes('pechuga') || name.includes('hamburguesa') || name.includes('lata')) return 150;
+  if (name.includes('loncha') || name.includes('rebanada')) return 25;
+  if (name.includes('yogur') || name.includes('yogurt')) return 125;
+  if (name.includes('salchicha')) return 50;
+  // Default average weight for 1 unit of unspecified food item
   return 150;
 };
 
