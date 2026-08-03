@@ -452,21 +452,21 @@ export const BudgetTab = ({
 
       {/* 1. CONFIGURATION CARD */}
       <CardContainer>
-        <PantryInputGrid style={{ gap: '16px' }}>
+        <PantryInputGrid style={{ gap: '10px' }}>
           <FormGroup>
-            <FormLabel>Ámbito del Presupuesto</FormLabel>
+            <FormLabel>Ámbito Presupuesto</FormLabel>
             <SelectControl
               value={budget_scope}
               onChange={e => handle_change_scope(e.target.value as 'family' | 'individual')}
             >
-              <option value="family">👨‍👩‍👧‍👦 Presupuesto Familiar</option>
-              <option value="individual">👤 Presupuesto Individual (1 persona)</option>
+              <option value="family">👨‍👩‍👧‍👦 Familiar</option>
+              <option value="individual">👤 Individual</option>
             </SelectControl>
           </FormGroup>
 
           {budget_scope === 'family' && (
             <FormGroup>
-              <FormLabel>Nº Comensales / Personas</FormLabel>
+              <FormLabel>Nº Comensales</FormLabel>
               <CampoTexto
                 etiqueta=""
                 valor={household_members}
@@ -478,7 +478,7 @@ export const BudgetTab = ({
           )}
 
           <FormGroup>
-            <FormLabel>Presupuesto Semanal (€)</FormLabel>
+            <FormLabel>Presupuesto (€)</FormLabel>
             <CampoTexto
               etiqueta=""
               valor={weekly_budget || ''}
@@ -489,12 +489,12 @@ export const BudgetTab = ({
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>Supermercado Preferido</FormLabel>
+            <FormLabel>Supermercado</FormLabel>
             <SelectControl
               value={preferred_supermarket}
               onChange={e => set_preferred_supermarket(e.target.value)}
             >
-              <option value="cheapest">El más barato (Cheapest)</option>
+              <option value="cheapest">Más barato</option>
               <option value="todos">Todos (Comparador)</option>
               <option value="mercadona">Mercadona</option>
               <option value="carrefour">Carrefour</option>
