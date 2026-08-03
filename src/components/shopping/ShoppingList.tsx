@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShoppingCart, PenLine, RefreshCw, AlertTriangle, Store, Plus, Search } from 'lucide-react';
+import { ShoppingCart, PenLine, RefreshCw, AlertTriangle, Store, Plus, Search, Loader2 } from 'lucide-react';
 import { Boton } from '../common/Boton';
 import { ShoppingItemCard } from './ShoppingItemCard';
 import { Box } from '../common/Box';
@@ -7,6 +7,7 @@ import { PageContainer, Spacer, PlannerHeader, TitleH2, CardContainer } from '..
 import { Dialogo } from '../common/Dialogo';
 import type { ShoppingItem } from '../../types';
 import { get_current_planner_day } from '../../utils/planner_helpers';
+import { calculateBasketSupermarketComparison, type SupermarketBasketResult } from '../../services/supermarket_api';
 
 interface ShoppingListProps {
   shopping_items: ShoppingItem[];
@@ -14,14 +15,6 @@ interface ShoppingListProps {
   on_toggle: (index: number) => void;
   on_add_custom: (name: string, quantity: number, unit: string) => void;
   start_date: string | null;
-}
-
-interface SupermarketEstimate {
-  name: string;
-  id: string;
-  totalCost: number;
-  logoColor: string;
-  badge?: string;
 }
 
 export const ShoppingList = ({
@@ -37,6 +30,8 @@ export const ShoppingList = ({
   const [is_recalculating, set_is_recalculating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [show_compare_modal, set_show_compare_modal] = useState(false);
+  const [is_loading_comparison, set_is_loading_comparison] = useState(false);
+  const [supermarketEstimates, setSupermarketEstimates] = useState<SupermarketBasketResult[]>([]);
 
   const current_day = get_current_planner_day(start_date);
 
@@ -46,6 +41,7 @@ export const ShoppingList = ({
   const auto_items  = filtered_items.filter(item => !item.manual && !item.purchased);
   const manual_items = filtered_items.filter(item => item.manual && !item.purchased);
   const purchased_count = shopping_items.filter(item => item.purchased).length;
+  const pending_count = shopping_items.filter(i => !i.purchased).length;
 
   const handle_add_submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +56,19 @@ export const ShoppingList = ({
     set_is_recalculating(true);
     await on_recalculate();
     set_is_recalculating(false);
+  };
+
+  const handle_open_compare = async () => {
+    set_show_compare_modal(true);
+    set_is_loading_comparison(true);
+    try {
+      const results = await calculateBasketSupermarketComparison(shopping_items);
+      setSupermarketEstimates(results);
+    } catch (e) {
+      console.error('Error calculando cesta:', e);
+    } finally {
+      set_is_loading_comparison(false);
+    }
   };
 
   const handle_share_whatsapp = async () => {
@@ -85,18 +94,6 @@ export const ShoppingList = ({
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(fullText)}`;
     window.open(waUrl, '_blank');
   };
-
-  const pending_count = shopping_items.filter(i => !i.purchased).length;
-  // Aligned with BudgetTab weekly ingredient cost estimation (~1.93€ avg per item in list)
-  const estimated_base = pending_count * 1.931;
-
-  const supermarketEstimates: SupermarketEstimate[] = [
-    { name: 'Mercadona', id: 'mercadona', totalCost: Math.round(estimated_base * 1.00 * 100) / 100, logoColor: '#10b981', badge: 'Más Recomendado 🥇' },
-    { name: 'Aldi', id: 'aldi', totalCost: Math.round(estimated_base * 0.96 * 100) / 100, logoColor: '#3b82f6', badge: 'Más Económico 💰' },
-    { name: 'Dia', id: 'dia', totalCost: Math.round(estimated_base * 1.03 * 100) / 100, logoColor: '#ef4444' },
-    { name: 'Eroski', id: 'eroski', totalCost: Math.round(estimated_base * 1.06 * 100) / 100, logoColor: '#f59e0b' },
-    { name: 'Carrefour', id: 'carrefour', totalCost: Math.round(estimated_base * 1.09 * 100) / 100, logoColor: '#8b5cf6' }
-  ].sort((a, b) => a.totalCost - b.totalCost);
 
   const section_header = (icon: React.ReactNode, label: string, count: number) => (
     <div style={{
@@ -134,7 +131,7 @@ export const ShoppingList = ({
             <>
               <Boton
                 texto="Comparar Cesta 🛒"
-                on_click={() => set_show_compare_modal(true)}
+                on_click={handle_open_compare}
                 variante="outlined"
                 color="secondary"
                 clase_css="btn-sm"
@@ -377,43 +374,52 @@ export const ShoppingList = ({
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
           <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
-            Estimación del coste total para tus <strong>{pending_count} productos pendientes</strong> cruzando precios actualizados de SuperMarket API:
+            Cálculo dinámico en tiempo real para tus <strong>{pending_count} productos pendientes</strong> consultando la base de datos de productos reales de SuperMarket API:
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
-            {supermarketEstimates.map((s, idx) => (
-              <div
-                key={s.id}
-                style={{
-                  background: idx === 0 ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.03)',
-                  border: idx === 0 ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 10,
-                  padding: '12px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Store size={20} color={s.logoColor} />
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {s.name}
-                      {s.badge && (
-                        <span style={{ fontSize: 10, backgroundColor: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: 4, color: s.logoColor }}>
-                          {s.badge}
-                        </span>
-                      )}
+          {is_loading_comparison ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '30px 0', gap: 10 }}>
+              <Loader2 size={32} className="spinner" color="#a78bfa" />
+              <span style={{ fontSize: 13, color: '#94a3b8' }}>Consultando catálogo y precios reales en SuperMarket API...</span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
+              {supermarketEstimates.map((s, idx) => (
+                <div
+                  key={s.id}
+                  style={{
+                    background: idx === 0 ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.03)',
+                    border: idx === 0 ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 10,
+                    padding: '12px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Store size={20} color={s.logoColor} />
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {s.name}
+                        {s.badge && (
+                          <span style={{ fontSize: 10, backgroundColor: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: 4, color: s.logoColor }}>
+                            {s.badge}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#64748b' }}>
+                        {s.matchedCount > 0 ? `${s.matchedCount}/${pending_count} coincidencias directas en BBDD` : `${pending_count} productos calculados`}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b' }}>{pending_count} productos en lista</div>
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: idx === 0 ? '#10b981' : '#fff' }}>
+                    {s.totalCost.toFixed(2)} €
                   </div>
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: idx === 0 ? '#10b981' : '#fff' }}>
-                  {s.totalCost.toFixed(2)} €
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
             <Boton
