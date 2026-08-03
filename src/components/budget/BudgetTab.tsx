@@ -470,14 +470,15 @@ export const BudgetTab = ({
         
         <Box style={{ borderTop: '1px solid rgba(255,255,255,0.06)', margin: '16px 0 10px 0' }} />
         
-        <Box style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Box style={{ display: 'flex', justifyContent: 'stretch', width: '100%' }}>
           <Boton
-            texto={is_updating_all ? "Actualizando productos..." : "Actualizar Búsqueda de Precios"}
+            texto={is_updating_all ? "Actualizando..." : "Actualizar Búsqueda de Precios"}
             variante="outlined"
             on_click={handle_auto_map_all}
             icono={is_updating_all ? <Loader2 style={{ animation: 'spin 1s linear infinite' }} size={16} /> : <RefreshCw size={16} />}
             deshabilitado={is_updating_all || weekly_ingredients.length === 0}
             tipo="button"
+            clase_css="full-width"
           />
         </Box>
       </CardContainer>
@@ -485,34 +486,34 @@ export const BudgetTab = ({
       <Spacer height={15} />
 
       {/* 2. BUDGET OVERVIEW */}
-      <CardContainer style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative', overflow: 'hidden' }}>
-        <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-          <Box style={{ textAlign: 'left' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold' }}>
+      <CardContainer style={{ display: 'flex', flexDirection: 'column', gap: '14px', position: 'relative', overflow: 'hidden', padding: '14px 16px' }}>
+        <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+          <Box style={{ textAlign: 'left', flex: 1, minWidth: '220px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '4px' }}>
+              <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold' }}>
                 Coste Estimado ({week_range.label})
               </span>
               <span style={{
-                fontSize: '10px',
+                fontSize: '9px',
                 backgroundColor: 'rgba(255,255,255,0.08)',
-                padding: '2px 8px',
+                padding: '2px 6px',
                 borderRadius: '12px',
                 color: 'rgba(255,255,255,0.7)',
                 fontWeight: 600
               }}>
-                {budget_scope === 'family' ? `👨‍gsub‍👧‍👦 Familiar (${household_members} personas)` : `👤 Individual (1 persona)`}
+                {budget_scope === 'family' ? `👨‍👩‍👧‍👦 Familiar (${household_members} pers.)` : `👤 Individual`}
               </span>
             </div>
 
-            <div style={{ fontSize: '32px', fontWeight: '800', color: progress_color, marginTop: '4px' }}>
+            <div style={{ fontSize: '24px', fontWeight: '800', color: progress_color, marginTop: '2px' }}>
               {total_weekly_cost.toFixed(2)} €
-              <span style={{ fontSize: '16px', fontWeight: '400', color: 'rgba(255,255,255,0.4)', marginLeft: '6px' }}>
+              <span style={{ fontSize: '14px', fontWeight: '400', color: 'rgba(255,255,255,0.4)', marginLeft: '6px' }}>
                 de {weekly_budget.toFixed(2)} €
               </span>
             </div>
 
-            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
-              <strong>{cost_per_person.toFixed(2)} €</strong> / persona a la semana ({daily_cost_per_person.toFixed(2)} € / día por persona)
+            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
+              <strong>{cost_per_person.toFixed(2)} €</strong> / pers. semana ({daily_cost_per_person.toFixed(2)} € / día)
             </div>
           </Box>
 
@@ -726,7 +727,7 @@ export const BudgetTab = ({
         on_close={() => setIsSearchOpen(false)}
         titulo={`Vincular Ingrediente: ${mapping_ingredient_name}`}
       >
-        <Box style={{ minWidth: '320px', maxWidth: '500px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <Box style={{ width: '100%', maxWidth: '500px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <Box style={{ display: 'flex', gap: '8px' }}>
             <Box style={{ flex: 1 }}>
               <CampoTexto
