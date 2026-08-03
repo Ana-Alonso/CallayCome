@@ -2,7 +2,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const SUPERMARKET_SUPABASE_URL = import.meta.env.VITE_SUPERMARKET_SUPABASE_URL || 'https://placeholder-supermarket.supabase.co';
 const SUPERMARKET_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPERMARKET_SUPABASE_ANON_KEY || 'placeholder-key';
-const SUPERMARKET_API_BASE_URL = import.meta.env.VITE_SUPERMARKET_API_BASE_URL || '';
+
 
 if (typeof window !== 'undefined') {
   try {
@@ -40,22 +40,46 @@ export async function searchProducts(
 
   const cleanQuery = query.trim().toLowerCase();
 
+  // Generate word stems for plurals/singulars (e.g. "huevos" -> "huevo")
+  const stems = [cleanQuery];
+  if (cleanQuery.endsWith('s')) stems.push(cleanQuery.slice(0, -1));
+  if (cleanQuery.endsWith('es')) stems.push(cleanQuery.slice(0, -2));
+
+  const words = cleanQuery.split(/\s+/).filter(w => w.length >= 3);
+  words.forEach(w => {
+    stems.push(w);
+    if (w.endsWith('s')) stems.push(w.slice(0, -1));
+    if (w.endsWith('es')) stems.push(w.slice(0, -2));
+  });
+
+  const uniqueStems = [...new Set(stems)];
+  const targetSuper = supermarketId && supermarketId !== 'todos' && supermarketId !== 'cheapest' 
+    ? supermarketId.toLowerCase() 
+    : null;
+
   try {
-    let q = supermarketSupabase
+    const { data, error } = await supermarketSupabase
       .from('productos')
       .select('referencia_id, nombre, precio, supermercado_id, last_seen, kcal, proteinas, carbohidratos, grasas')
-      .ilike('nombre', `%${cleanQuery}%`);
-
-    if (supermarketId && supermarketId !== 'todos' && supermarketId !== 'cheapest') {
-      q = q.eq('supermercado_id', supermarketId.toLowerCase());
-    }
-
-    q = q.limit(30);
-
-    const { data, error } = await q;
+      .limit(200);
 
     if (!error && data && data.length > 0) {
-      return data.map((item: any) => ({
+      // Filter products matching any stem
+      const matches = data.filter((p: any) => {
+        const pName = p.nombre.toLowerCase();
+        return uniqueStems.some(s => pName.includes(s));
+      });
+
+      // Sort: products matching targetSuper first, then by price
+      matches.sort((a: any, b: any) => {
+        const aPref = targetSuper && a.supermercado_id === targetSuper;
+        const bPref = targetSuper && b.supermercado_id === targetSuper;
+        if (aPref && !bPref) return -1;
+        if (!aPref && bPref) return 1;
+        return Number(a.precio) - Number(b.precio);
+      });
+
+      return matches.slice(0, 20).map((item: any) => ({
         referencia_id: item.referencia_id || item.id || `ref_${Math.random()}`,
         nombre: item.nombre,
         precio: Number(item.precio),
@@ -68,29 +92,7 @@ export async function searchProducts(
       }));
     }
   } catch (err) {
-    console.warn('Búsqueda directa en Supabase falló, intentando API secundaria:', err);
-  }
-
-  // Optional REST API fallback (silent fail returning [])
-  if (SUPERMARKET_API_BASE_URL) {
-    try {
-      const url = supermarketId && supermarketId !== 'todos' && supermarketId !== 'cheapest'
-        ? `${SUPERMARKET_API_BASE_URL}/supermercados/${supermarketId.toLowerCase()}/search?q=${encodeURIComponent(cleanQuery)}`
-        : `${SUPERMARKET_API_BASE_URL}/supermercados/search?q=${encodeURIComponent(cleanQuery)}`;
-
-      const response = await fetch(url, {
-        headers: { 'Accept': 'application/json' }
-      });
-
-      if (response.ok) {
-        const json = await response.json();
-        if (json.status === 'success' && Array.isArray(json.data)) {
-          return json.data as SuperMarketProduct[];
-        }
-      }
-    } catch (e) {
-      console.warn('API secundaria de supermercados no disponible:', e);
-    }
+    console.warn('Error al consultar productos en Supabase:', err);
   }
 
   return [];
