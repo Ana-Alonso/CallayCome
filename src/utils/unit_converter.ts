@@ -22,11 +22,35 @@ export const normalize_unit = (qty: number, unitStr: string): NormalizedQty => {
   }
 
   // 2. Volume Units (base: 'ml')
-  if (['ml', 'mililitro', 'mililitros'].includes(norm)) {
+  if (['ml', 'mililitro', 'mililitros', 'cc'].includes(norm)) {
     return { value: qty, baseUnit: 'ml', factor: 1 };
   }
   if (['l', 'liter', 'liters', 'litro', 'litros'].includes(norm)) {
     return { value: qty * 1000, baseUnit: 'ml', factor: 1000 };
+  }
+  if (['cl', 'centilitro', 'centilitros'].includes(norm)) {
+    return { value: qty * 10, baseUnit: 'ml', factor: 10 };
+  }
+  if (['dl', 'decilitro', 'decilitros'].includes(norm)) {
+    return { value: qty * 100, baseUnit: 'ml', factor: 100 };
+  }
+  if (['cucharada', 'cucharadas', 'tbsp', 'cbs', 'el'].includes(norm)) {
+    return { value: qty * 15, baseUnit: 'ml', factor: 15 };
+  }
+  if (['cucharadita', 'cucharaditas', 'tsp', 'tl'].includes(norm)) {
+    return { value: qty * 5, baseUnit: 'ml', factor: 5 };
+  }
+  if (['vaso', 'vasos', 'taza', 'tazas', 'cup', 'cups'].includes(norm)) {
+    return { value: qty * 250, baseUnit: 'ml', factor: 250 };
+  }
+  if (['chorro', 'chorrito', 'chorritos'].includes(norm)) {
+    return { value: qty * 15, baseUnit: 'ml', factor: 15 };
+  }
+  if (['brik', 'briks'].includes(norm)) {
+    return { value: qty * 1000, baseUnit: 'ml', factor: 1000 };
+  }
+  if (['pizca', 'pizcas'].includes(norm)) {
+    return { value: qty, baseUnit: 'g', factor: 1 };
   }
 
   // 3. Count / Portions / Slices
@@ -103,6 +127,14 @@ export const convert_qty_to_unit = (
   }
   if (fromNorm.baseUnit === 'g' && targetNorm.baseUnit === 'ml') {
     return fromNorm.value / targetNorm.factor;
+  }
+
+  // 4. Volume (ml) <-> Count (unidades) (Assuming ~250 ml per liquid unit/container)
+  if (fromNorm.baseUnit === 'ml' && targetNorm.baseUnit === 'unidades') {
+    return fromNorm.value / 250;
+  }
+  if (fromNorm.baseUnit === 'unidades' && targetNorm.baseUnit === 'ml') {
+    return (fromNorm.value * 250) / targetNorm.factor;
   }
 
   return qty;
