@@ -34,7 +34,8 @@ export interface SuperMarketProduct {
 
 export async function searchProducts(
   query: string,
-  supermarketId?: string
+  supermarketId?: string,
+  forceApi: boolean = false
 ): Promise<SuperMarketProduct[]> {
   if (!query || !query.trim()) return [];
 
@@ -56,56 +57,49 @@ export async function searchProducts(
   const isSpecificSupermarket = supermarketId && supermarketId !== 'todos' && supermarketId !== 'cheapest';
   const targetSuper = isSpecificSupermarket ? supermarketId.toLowerCase() : null;
 
-  // 1. FIRST TRY DATABASE SEARCH (SUPABASE)
-  try {
-    const { data, error } = await supermarketSupabase
-      .from('productos')
-      .select('referencia_id, nombre, precio, supermercado_id, last_seen, kcal, proteinas, carbohidratos, grasas')
-      .limit(200);
+  // 1. FIRST TRY DATABASE SEARCH (SUPABASE) UNLESS forceApi IS TRUE
+  if (!forceApi) {
+    try {
+      let q = supermarketSupabase
+        .from('productos')
+        .select('referencia_id, nombre, precio, supermercado_id, last_seen, kcal, proteinas, carbohidratos, grasas')
+        .limit(200);
 
-    if (!error && data && data.length > 0) {
-      let matches = data.filter((p: any) => {
-        const pName = p.nombre.toLowerCase();
-        return uniqueStems.some(s => pName.includes(s));
-      });
-
-      // Filter to specific supermarket if specified
+      // STRICT SUPERMARKET FILTERING
       if (isSpecificSupermarket && targetSuper) {
-        const exactMatches = matches.filter((p: any) => p.supermercado_id === targetSuper);
-        if (exactMatches.length > 0) {
-          matches = exactMatches;
-        }
+        q = q.eq('supermercado_id', targetSuper);
       }
 
-      if (matches.length > 0) {
-        matches.sort((a: any, b: any) => {
-          if (targetSuper) {
-            const aPref = a.supermercado_id === targetSuper;
-            const bPref = b.supermercado_id === targetSuper;
-            if (aPref && !bPref) return -1;
-            if (!aPref && bPref) return 1;
-          }
-          return Number(a.precio) - Number(b.precio);
+      const { data, error } = await q;
+
+      if (!error && data && data.length > 0) {
+        const matches = data.filter((p: any) => {
+          const pName = p.nombre.toLowerCase();
+          return uniqueStems.some(s => pName.includes(s));
         });
 
-        return matches.slice(0, 20).map((item: any) => ({
-          referencia_id: item.referencia_id || item.id || `ref_${Math.random()}`,
-          nombre: item.nombre,
-          precio: Number(item.precio),
-          supermercado: item.supermercado_id || item.supermercado || 'general',
-          last_seen: item.last_seen || new Date().toISOString(),
-          kcal: item.kcal != null ? Number(item.kcal) : null,
-          proteinas: item.proteinas != null ? Number(item.proteinas) : null,
-          carbohidratos: item.carbohidratos != null ? Number(item.carbohidratos) : null,
-          grasas: item.grasas != null ? Number(item.grasas) : null
-        }));
+        if (matches.length > 0) {
+          matches.sort((a: any, b: any) => Number(a.precio) - Number(b.precio));
+
+          return matches.slice(0, 20).map((item: any) => ({
+            referencia_id: item.referencia_id || item.id || `ref_${Math.random()}`,
+            nombre: item.nombre,
+            precio: Number(item.precio),
+            supermercado: item.supermercado_id || item.supermercado || 'general',
+            last_seen: item.last_seen || new Date().toISOString(),
+            kcal: item.kcal != null ? Number(item.kcal) : null,
+            proteinas: item.proteinas != null ? Number(item.proteinas) : null,
+            carbohidratos: item.carbohidratos != null ? Number(item.carbohidratos) : null,
+            grasas: item.grasas != null ? Number(item.grasas) : null
+          }));
+        }
       }
+    } catch (err) {
+      console.warn('Error al consultar productos en Supabase DB:', err);
     }
-  } catch (err) {
-    console.warn('Error al consultar productos en Supabase DB:', err);
   }
 
-  // 2. IF NOT FOUND IN DATABASE, CALL THE SUPERMARKET API TO SCRAPE/FETCH REALTIME
+  // 2. IF NOT FOUND IN DB (OR forceApi IS TRUE), CALL SUPERMARKET REST API FOR SPECIFIC SUPERMARKET
   if (SUPERMARKET_API_BASE_URL) {
     try {
       const url = isSpecificSupermarket && targetSuper
@@ -119,11 +113,16 @@ export async function searchProducts(
       if (response.ok) {
         const json = await response.json();
         if (json.status === 'success' && Array.isArray(json.data)) {
-          return json.data.map((item: any) => ({
+          let apiProducts = json.data;
+          if (isSpecificSupermarket && targetSuper) {
+            apiProducts = apiProducts.filter((p: any) => (p.supermercado || p.supermercado_id) === targetSuper);
+          }
+
+          return apiProducts.map((item: any) => ({
             referencia_id: item.referencia_id || item.id || `ref_${Math.random()}`,
             nombre: item.nombre,
             precio: Number(item.precio),
-            supermercado: item.supermercado || item.supermercado_id || 'general',
+            supermercado: item.supermercado || item.supermercado_id || targetSuper || 'general',
             last_seen: item.last_seen || new Date().toISOString(),
             kcal: item.kcal != null ? Number(item.kcal) : null,
             proteinas: item.proteinas != null ? Number(item.proteinas) : null,

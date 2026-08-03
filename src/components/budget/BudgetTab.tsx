@@ -170,9 +170,10 @@ export const BudgetTab = ({
       let cost = 0;
       let isMapped = false;
       let matchedProdName = '';
-      let supermarket = '';
+      const isSpecificSuper = preferred_supermarket !== 'todos' && preferred_supermarket !== 'cheapest';
+      let supermarket = isSpecificSuper ? preferred_supermarket : '';
 
-      if (mapping) {
+      if (mapping && (!isSpecificSuper || mapping.supermarket_id === preferred_supermarket)) {
         cost = calculate_ingredient_cost(
           req.quantity,
           req.unit,
@@ -185,7 +186,7 @@ export const BudgetTab = ({
         matchedProdName = mapping.product_name;
         supermarket = mapping.supermarket_id;
       } else {
-        // Fallback estimated cost based on quantity
+        // Fallback estimated cost based on quantity for current selected supermarket
         cost = 0.50 * req.recipeCount * (budget_scope === 'individual' ? 1 : (household_members / 2));
       }
 
@@ -199,7 +200,7 @@ export const BudgetTab = ({
         supermarket,
         recipeCount: req.recipeCount
       };
-    }).sort((a, b) => b.cost - a.cost); // sort by cost impact
+    }).sort((a, b) => b.cost - a.cost);
   };
 
   const weekly_ingredients = gather_weekly_ingredients();
@@ -217,13 +218,13 @@ export const BudgetTab = ({
       ? '#ffa726' 
       : '#81c784';
 
-  const trigger_product_search = async (queryStr: string) => {
+  const trigger_product_search = async (queryStr: string, forceApi: boolean = false) => {
     if (!queryStr.trim()) return;
     setIsSearching(true);
     setSearchResults([]);
     setSelectedProduct(null);
     try {
-      const results = await searchProducts(queryStr.trim(), preferred_supermarket);
+      const results = await searchProducts(queryStr.trim(), preferred_supermarket, forceApi);
       setSearchResults(results.slice(0, 15));
     } catch (e: any) {
       console.error("Error al buscar productos:", e);
@@ -232,8 +233,8 @@ export const BudgetTab = ({
     }
   };
 
-  const handle_search_api = async () => {
-    await trigger_product_search(search_query);
+  const handle_search_api = async (forceApi: boolean = false) => {
+    await trigger_product_search(search_query, forceApi);
   };
 
   const handle_auto_map_all = async () => {
@@ -243,34 +244,33 @@ export const BudgetTab = ({
       const isSpecificSupermarket = preferred_supermarket !== 'todos' && preferred_supermarket !== 'cheapest';
 
       for (const ing of weekly_ingredients) {
-        const needsMapping = !ing.isMapped || 
-          (isSpecificSupermarket && ing.supermarket !== preferred_supermarket);
-          
-        if (needsMapping) {
-          const queryStr = ing.name;
-          const results = await searchProducts(queryStr, preferred_supermarket);
-          if (results.length > 0) {
-            let selectedProd = results[0];
-            if (isSpecificSupermarket) {
-              const exactMatch = results.find(p => p.supermercado === preferred_supermarket);
-              if (exactMatch) selectedProd = exactMatch;
-            } else {
-              selectedProd = results.reduce((min, p) => p.precio < min.precio ? p : min, results[0]);
-            }
+        const queryStr = ing.name;
+        const results = await searchProducts(queryStr, preferred_supermarket);
 
-            const parsed = parse_product_info(selectedProd.nombre);
-            
-            await handle_save_mapping({
-              ingredient_name: ing.name,
-              product_name: selectedProd.nombre,
-              price: selectedProd.precio,
-              package_qty: parsed.quantity,
-              package_unit: parsed.unit,
-              supermarket_id: selectedProd.supermercado,
-              reference_id: selectedProd.referencia_id
-            });
-            count++;
+        if (results.length > 0) {
+          let selectedProd = results[0];
+          if (isSpecificSupermarket) {
+            const exactMatch = results.find(p => p.supermercado === preferred_supermarket);
+            if (exactMatch) selectedProd = exactMatch;
+          } else {
+            selectedProd = results.reduce((min, p) => p.precio < min.precio ? p : min, results[0]);
           }
+
+          const parsed = parse_product_info(selectedProd.nombre);
+          
+          await handle_save_mapping({
+            ingredient_name: ing.name,
+            product_name: selectedProd.nombre,
+            price: selectedProd.precio,
+            package_qty: parsed.quantity,
+            package_unit: parsed.unit,
+            supermarket_id: selectedProd.supermercado,
+            reference_id: selectedProd.referencia_id
+          });
+          count++;
+        } else if (isSpecificSupermarket && ingredient_mappings[ing.name.toLowerCase().trim()]) {
+          // Clear stale mapping from another supermarket if not available in current preferred super
+          await handle_delete_mapping(ing.name);
         }
       }
       const labelMode = preferred_supermarket === 'cheapest' 
@@ -500,7 +500,7 @@ export const BudgetTab = ({
                 color: 'rgba(255,255,255,0.7)',
                 fontWeight: 600
               }}>
-                {budget_scope === 'family' ? `👨‍👩‍👧‍👦 Familiar (${household_members} personas)` : `👤 Individual (1 persona)`}
+                {budget_scope === 'family' ? `👨‍gsub‍👧‍👦 Familiar (${household_members} personas)` : `👤 Individual (1 persona)`}
               </span>
             </div>
 
@@ -617,7 +617,7 @@ export const BudgetTab = ({
                     </div>
                   ) : (
                     <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <HelpCircle size={10} /> Precio estimado (Sin vincular a supermercado)
+                      <HelpCircle size={10} /> Precio estimado (Sin vincular en {preferred_supermarket.toUpperCase()})
                     </div>
                   )}
                 </Box>
@@ -740,8 +740,17 @@ export const BudgetTab = ({
               <Boton
                 texto=""
                 variante="outlined"
-                on_click={handle_search_api}
+                on_click={() => handle_search_api(false)}
                 icono={is_searching ? <Loader2 style={{ animation: 'spin 1s linear infinite' }} size={16} /> : <Search size={16} />}
+                deshabilitado={!search_query.trim() || is_searching}
+              />
+            </Box>
+            <Box style={{ display: 'flex', alignItems: 'center' }}>
+              <Boton
+                texto="🌐 API"
+                variante="outlined"
+                on_click={() => handle_search_api(true)}
+                icono={<RefreshCw size={14} />}
                 deshabilitado={!search_query.trim() || is_searching}
               />
             </Box>
