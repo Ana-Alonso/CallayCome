@@ -83,6 +83,25 @@ export const BudgetTab = ({
   const [confirm_unit, setConfirmUnit] = useState<string>('unidades');
   const [confirm_price, setConfirmPrice] = useState<number>(0);
 
+  // Household budget scope states (individual vs family)
+  const [budget_scope, set_budget_scope] = useState<'family' | 'individual'>(() => {
+    return (localStorage.getItem('budget_scope') as 'family' | 'individual') || 'family';
+  });
+  const [household_members, set_household_members] = useState<number>(() => {
+    return Number(localStorage.getItem('budget_household_members')) || 2;
+  });
+
+  const handle_change_scope = (scope: 'family' | 'individual') => {
+    set_budget_scope(scope);
+    localStorage.setItem('budget_scope', scope);
+  };
+
+  const handle_change_members = (members: number) => {
+    const val = Math.max(1, Math.min(12, members));
+    set_household_members(val);
+    localStorage.setItem('budget_household_members', String(val));
+  };
+
   // Get start and end day of selected week
   const get_week_day_range = (weekNum: number) => {
     if (weekNum === 1) return { start: 1, end: 7, label: 'Semana 1 (Días 1-7)' };
@@ -94,10 +113,11 @@ export const BudgetTab = ({
   const week_range = get_week_day_range(selected_week);
   const week_plan = meal_plan.filter(dp => dp.day >= week_range.start && dp.day <= week_range.end);
 
-  // 1. Gather all required ingredients for the selected week's recipes
+  // 1. Gather all required ingredients for the selected week's recipes (scaled by individual / family members)
   const gather_weekly_ingredients = () => {
     const required: Record<string, { quantity: number; unit: string; recipeCount: number }> = {};
-    
+    const target_members = budget_scope === 'individual' ? 1 : Math.max(1, household_members);
+
     week_plan.forEach(dayPlan => {
       const all_recipe_ids = [
         ...dayPlan.desayuno,
@@ -108,9 +128,13 @@ export const BudgetTab = ({
       all_recipe_ids.forEach(recipeId => {
         const recipe = recipes.find(r => r.id === recipeId);
         if (recipe && recipe.ingredients) {
+          const recipePortions = (recipe as any).portions || (recipe as any).servings || 1;
+          const scaleFactor = target_members / recipePortions;
+
           recipe.ingredients.forEach(ing => {
             const key = ing.name.toLowerCase().trim();
-            const norm = normalize_unit(ing.quantity, ing.unit);
+            const scaledQty = ing.quantity * scaleFactor;
+            const norm = normalize_unit(scaledQty, ing.unit);
 
             if (required[key]) {
               const storedNorm = normalize_unit(required[key].quantity, required[key].unit);
@@ -118,7 +142,7 @@ export const BudgetTab = ({
                 required[key].quantity = storedNorm.value + norm.value;
                 required[key].unit = storedNorm.baseUnit;
               } else {
-                required[key].quantity += ing.quantity;
+                required[key].quantity += scaledQty;
               }
               required[key].recipeCount += 1;
             } else {
@@ -162,7 +186,7 @@ export const BudgetTab = ({
         supermarket = mapping.supermarket_id;
       } else {
         // Fallback estimated cost based on quantity
-        cost = 0.50 * req.recipeCount; // generic estimate
+        cost = 0.50 * req.recipeCount * (budget_scope === 'individual' ? 1 : (household_members / 2));
       }
 
       return {
@@ -180,6 +204,9 @@ export const BudgetTab = ({
 
   const weekly_ingredients = gather_weekly_ingredients();
   const total_weekly_cost = Number(weekly_ingredients.reduce((sum, item) => sum + item.cost, 0).toFixed(2));
+  const active_members_count = budget_scope === 'individual' ? 1 : Math.max(1, household_members);
+  const cost_per_person = Number((total_weekly_cost / active_members_count).toFixed(2));
+  const daily_cost_per_person = Number((cost_per_person / 7).toFixed(2));
 
   // Progress Bar styling details
   const cost_percentage = Math.min((total_weekly_cost / (weekly_budget || 1)) * 100, 100);
@@ -286,8 +313,10 @@ export const BudgetTab = ({
 
   return (
     <PageContainer>
-      <TitleH2>Presupuesto Semanal 💸</TitleH2>
-      <TextMuted>Compara precios en tiempo real y estima el coste de tus menús planificados.</TextMuted>
+      <TitleH2>Presupuesto Inteligente y Comparador</TitleH2>
+      <TextMuted>
+        Calcula el gasto semanal exacto de tu menú planificado comparando precios en supermercados reales, ajustado para usuarios individuales o familias.
+      </TextMuted>
 
       <Spacer height={15} />
 
@@ -295,48 +324,62 @@ export const BudgetTab = ({
       <CardContainer style={{ 
         display: 'flex', 
         alignItems: 'center', 
-        justifyContent: 'space-between', 
-        padding: '16px 20px', 
-        border: budget_filter_active ? '1px solid rgba(129, 199, 132, 0.3)' : '1px solid rgba(255,255,255,0.06)',
-        backgroundColor: budget_filter_active ? 'rgba(129, 199, 132, 0.02)' : 'rgba(255,255,255,0.01)',
-        textAlign: 'left'
+        justifyContent: 'space-between',
+        padding: '14px 18px',
+        backgroundColor: budget_filter_active ? 'rgba(129, 199, 132, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+        border: `1px solid ${budget_filter_active ? 'rgba(129, 199, 132, 0.3)' : 'rgba(255, 255, 255, 0.08)'}`,
+        marginBottom: '15px'
       }}>
-        <Box style={{ textAlign: 'left' }}>
-          <div style={{ fontWeight: 'bold', color: '#fff', fontSize: '15px' }}>Activar Control de Presupuesto</div>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
-            Habilita la estimación de costes de recetas y ordena las recomendaciones del menú por precio.
+        <div style={{ textAlign: 'left' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#fff' }}>
+            Activar Ordenación por Presupuesto en Menú Semanal
           </div>
-        </Box>
-        <Box style={{ display: 'flex', alignItems: 'center' }}>
-          <input
-            type="checkbox"
-            checked={budget_filter_active}
+          <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '2px' }}>
+            Prioriza las recetas más económicas y aptas para tu límite de gasto en la ruleta y recomendaciones.
+          </div>
+        </div>
+        <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '26px', cursor: 'pointer' }}>
+          <input 
+            type="checkbox" 
+            checked={budget_filter_active} 
             onChange={e => set_budget_filter_active(e.target.checked)}
-            style={{ 
-              width: '20px', 
-              height: '20px', 
-              cursor: 'pointer', 
-              accentColor: '#81c784'
-            }}
+            style={{ opacity: 0, width: 0, height: 0 }} 
           />
-        </Box>
+          <span style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: budget_filter_active ? '#81c784' : '#374151',
+            borderRadius: '26px',
+            transition: '0.3s'
+          }}>
+            <span style={{
+              position: 'absolute',
+              content: '""',
+              height: '20px',
+              width: '20px',
+              left: budget_filter_active ? '24px' : '3px',
+              bottom: '3px',
+              backgroundColor: 'white',
+              borderRadius: '50%',
+              transition: '0.3s'
+            }} />
+          </span>
+        </label>
       </CardContainer>
-
-      <Spacer height={15} />
 
       {!budget_filter_active && (
         <Box style={{
           backgroundColor: 'rgba(255, 167, 38, 0.08)',
-          border: '1px solid rgba(255, 167, 38, 0.2)',
-          borderRadius: '12px',
+          border: '1px solid rgba(255, 167, 38, 0.25)',
+          borderRadius: '10px',
           padding: '12px 16px',
+          marginBottom: '15px',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
+          gap: '12px',
           color: '#ffa726',
           fontSize: '13px',
-          textAlign: 'left',
-          marginBottom: '15px'
+          textAlign: 'left'
         }}>
           <AlertCircle size={18} />
           <div>
@@ -348,6 +391,30 @@ export const BudgetTab = ({
       {/* 1. CONFIGURATION CARD */}
       <CardContainer>
         <PantryInputGrid style={{ gap: '16px' }}>
+          <FormGroup>
+            <FormLabel>Ámbito del Presupuesto</FormLabel>
+            <SelectControl
+              value={budget_scope}
+              onChange={e => handle_change_scope(e.target.value as 'family' | 'individual')}
+            >
+              <option value="family">👨‍👩‍👧‍👦 Presupuesto Familiar</option>
+              <option value="individual">👤 Presupuesto Individual (1 persona)</option>
+            </SelectControl>
+          </FormGroup>
+
+          {budget_scope === 'family' && (
+            <FormGroup>
+              <FormLabel>Nº Comensales / Personas</FormLabel>
+              <CampoTexto
+                etiqueta=""
+                valor={household_members}
+                on_change={(val) => handle_change_members(Number(val))}
+                tipo="number"
+                marcador_posicion="2"
+              />
+            </FormGroup>
+          )}
+
           <FormGroup>
             <FormLabel>Presupuesto Semanal (€)</FormLabel>
             <CampoTexto
@@ -409,14 +476,31 @@ export const BudgetTab = ({
       <CardContainer style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative', overflow: 'hidden' }}>
         <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
           <Box style={{ textAlign: 'left' }}>
-            <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold' }}>
-              Coste Estimado ({week_range.label})
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold' }}>
+                Coste Estimado ({week_range.label})
+              </span>
+              <span style={{
+                fontSize: '10px',
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                padding: '2px 8px',
+                borderRadius: '12px',
+                color: 'rgba(255,255,255,0.7)',
+                fontWeight: 600
+              }}>
+                {budget_scope === 'family' ? `👨‍👩‍👧‍👦 Familiar (${household_members} personas)` : `👤 Individual (1 persona)`}
+              </span>
+            </div>
+
             <div style={{ fontSize: '32px', fontWeight: '800', color: progress_color, marginTop: '4px' }}>
               {total_weekly_cost.toFixed(2)} €
               <span style={{ fontSize: '16px', fontWeight: '400', color: 'rgba(255,255,255,0.4)', marginLeft: '6px' }}>
                 de {weekly_budget.toFixed(2)} €
               </span>
+            </div>
+
+            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
+              <strong>{cost_per_person.toFixed(2)} €</strong> / persona a la semana ({daily_cost_per_person.toFixed(2)} € / día por persona)
             </div>
           </Box>
 
@@ -460,8 +544,8 @@ export const BudgetTab = ({
 
       <Spacer height={15} />
 
-      {/* 3. TWO COLUMN DETAILED VIEW */}
-      <Box style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', width: '100%' }} sx={{ '@media (min-width: 900px)': { gridTemplateColumns: '3fr 2fr' } }}>
+      {/* 3. MAIN CONTENT: INGREDIENTS LIST + RECIPE COST EXPLORER */}
+      <Box style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
         
         {/* LEFT COLUMN: INGREDIENTS LIST & MAPPER */}
         <Box style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -475,38 +559,34 @@ export const BudgetTab = ({
           </Box>
 
           {weekly_ingredients.length === 0 ? (
-            <CardContainer style={{ padding: '40px', textAlign: 'center' }}>
-              <ShoppingCart size={40} style={{ color: 'rgba(255,255,255,0.1)', marginBottom: '12px' }} />
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px' }}>
-                No hay comidas planificadas en la semana seleccionada. Ve a la pestaña "Plan del Mes" para añadir recetas.
-              </div>
+            <CardContainer style={{ padding: '30px', textAlign: 'center', color: 'rgba(255,255,255,0.4)' }}>
+              <ShoppingCart size={36} style={{ marginBottom: '8px', opacity: 0.4 }} />
+              <div>No hay recetas planificadas para {week_range.label}.</div>
             </CardContainer>
           ) : (
-            weekly_ingredients.map(ing => (
+            weekly_ingredients.map((ing) => (
               <Box 
                 key={ing.name}
                 style={{
                   backgroundColor: '#13131f',
-                  border: '1px solid #1f1f2e',
-                  borderRadius: '12px',
-                  padding: '12px 16px',
+                  border: `1px solid ${ing.isMapped ? 'rgba(129, 199, 132, 0.2)' : 'rgba(255,255,255,0.06)'}`,
+                  borderRadius: '10px',
+                  padding: '10px 14px',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  transition: 'transform 0.2s',
+                  gap: '12px'
                 }}
               >
-                <Box style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left', flex: 1, minWidth: 0, paddingRight: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '14px' }}>{ing.name}</span>
-                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>
-                      ({ing.quantity} {ing.unit})
-                    </span>
+                <Box style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left', minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 'bold', color: '#fff', fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {ing.name} <span style={{ fontSize: '12px', fontWeight: 'normal', color: 'rgba(255,255,255,0.4)' }}>({ing.quantity} {ing.unit})</span>
                   </div>
                   
                   {ing.isMapped ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px' }}>
                       <span style={{
+                        fontSize: '9px',
                         padding: '1px 5px',
                         borderRadius: '3px',
                         backgroundColor: ing.supermarket === 'mercadona' ? '#00A859' :
@@ -565,12 +645,12 @@ export const BudgetTab = ({
             </span>
           </Box>
 
-          <Box style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {recipes.map(recipe => {
+          <Box style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {recipes.slice(0, 10).map((recipe) => {
               const cost = calculate_recipe_cost(recipe);
-              // Calculate portion cost (assume 4 default if unspecified)
-              const portionCost = Number((cost / 4).toFixed(2));
-              
+              const servings = (recipe as any).portions || (recipe as any).servings || 1;
+              const portionCost = cost / servings;
+
               // Determine if affordable (e.g. if one portion is less than 10% of weekly budget)
               const isAffordable = portionCost < (weekly_budget * 0.1);
 
@@ -824,9 +904,9 @@ export const BudgetTab = ({
               </span>
             </Box>
 
-            <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }} />
+            <Box style={{ borderTop: '1px solid rgba(255,255,255,0.06)', margin: '4px 0' }} />
 
-            <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '1px' }}>
               Desglose de Ingredientes:
             </div>
 
@@ -834,55 +914,28 @@ export const BudgetTab = ({
               {selected_recipe_for_detail.ingredients.map(ing => {
                 const key = ing.name.toLowerCase().trim();
                 const mapping = ingredient_mappings[key];
-                
                 let cost = 0;
                 if (mapping) {
-                  cost = calculate_ingredient_cost(
-                    ing.quantity,
-                    ing.unit,
-                    ing.name,
-                    mapping.package_qty,
-                    mapping.package_unit,
-                    mapping.price
-                  );
+                  cost = calculate_ingredient_cost(ing.quantity, ing.unit, ing.name, mapping.package_qty, mapping.package_unit, mapping.price);
                 } else {
-                  cost = selected_recipe_for_detail.price === 'economica' ? 0.30 : 1.20;
+                  cost = 0.50;
                 }
 
                 return (
-                  <Box
-                    key={ing.name}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      backgroundColor: 'rgba(255,255,255,0.02)',
-                      border: '1px solid rgba(255,255,255,0.04)',
-                      fontSize: '13px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                  <Box key={ing.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', padding: '6px 8px', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '6px' }}>
+                    <div>
                       <span style={{ color: '#fff', fontWeight: '500' }}>{ing.name}</span>
-                      <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
-                        {ing.quantity} {ing.unit} {mapping ? `(de ${mapping.supermarket_id})` : '(estimado)'}
+                      <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', marginLeft: '6px' }}>
+                        ({ing.quantity} {ing.unit})
                       </span>
                     </div>
-                    <span style={{ fontWeight: 'bold', color: mapping ? '#81c784' : 'rgba(255,255,255,0.4)' }}>
+                    <span style={{ fontWeight: 'bold', color: mapping ? '#81c784' : 'rgba(255,255,255,0.5)' }}>
                       {cost.toFixed(2)} €
                     </span>
                   </Box>
                 );
               })}
             </Box>
-
-            <Boton
-              texto="Cerrar"
-              on_click={() => setSelectedRecipeForDetail(null)}
-              clase_css="full-width"
-              tipo="button"
-            />
           </Box>
         )}
       </Dialogo>
