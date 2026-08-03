@@ -644,12 +644,21 @@ export const BudgetTab = ({
                 }}
               >
                 {/* ROW 1: INGREDIENT NAME & QTY (LEFT) | COST PRICE (RIGHT) */}
-                <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0, textAlign: 'left' }}>
-                    <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '8px', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0, overflow: 'hidden', textAlign: 'left' }}>
+                    <span style={{
+                      color: '#fff',
+                      fontWeight: 'bold',
+                      fontSize: '14px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      display: 'block',
+                      minWidth: 0
+                    }}>
                       {ing.name}
                     </span>
-                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', flexShrink: 0 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', flexShrink: 0 }}>
                       ({ing.quantity} {ing.unit})
                     </span>
                   </div>
@@ -672,10 +681,10 @@ export const BudgetTab = ({
                 </Box>
 
                 {/* ROW 2: SUPERMARKET & PRODUCT NAME (LEFT) | RECIPES & EDIT BUTTON (RIGHT) */}
-                <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '8px' }}>
-                  <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '8px', minWidth: 0 }}>
+                  <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textAlign: 'left' }}>
                     {ing.isMapped ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', minWidth: 0, overflow: 'hidden' }}>
                         <span style={{
                           padding: '2px 6px',
                           borderRadius: '4px',
@@ -691,14 +700,25 @@ export const BudgetTab = ({
                         }}>
                           {ing.supermarket}
                         </span>
-                        <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{
+                          color: 'rgba(255,255,255,0.65)',
+                          fontSize: '11px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          display: 'block',
+                          minWidth: 0,
+                          flex: 1
+                        }}>
                           {ing.matchedProdName}
                         </span>
                       </div>
                     ) : (
-                      <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, overflow: 'hidden' }}>
                         <HelpCircle size={12} style={{ color: '#FFA726', flexShrink: 0 }} />
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Precio estimado (Sin vincular)</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', minWidth: 0 }}>
+                          Precio estimado (Sin vincular)
+                        </span>
                       </div>
                     )}
                   </div>
