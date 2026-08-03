@@ -63,36 +63,47 @@ export async function searchProducts(
       let q = supermarketSupabase
         .from('productos')
         .select('referencia_id, nombre, precio, supermercado_id, last_seen, kcal, proteinas, carbohidratos, grasas')
-        .limit(200);
+        .ilike('nombre', `%${cleanQuery}%`)
+        .limit(50);
 
       // STRICT SUPERMARKET FILTERING
       if (isSpecificSupermarket && targetSuper) {
         q = q.eq('supermercado_id', targetSuper);
       }
 
-      const { data, error } = await q;
+      let { data, error } = await q;
+
+      // If ilike full query yielded no results, try stems
+      if ((!data || data.length === 0) && uniqueStems.length > 0) {
+        const firstStem = uniqueStems.find(s => s.length >= 3) || cleanQuery;
+        let qStem = supermarketSupabase
+          .from('productos')
+          .select('referencia_id, nombre, precio, supermercado_id, last_seen, kcal, proteinas, carbohidratos, grasas')
+          .ilike('nombre', `%${firstStem}%`)
+          .limit(50);
+        if (isSpecificSupermarket && targetSuper) {
+          qStem = qStem.eq('supermercado_id', targetSuper);
+        }
+        const resStem = await qStem;
+        if (!resStem.error && resStem.data) {
+          data = resStem.data;
+        }
+      }
 
       if (!error && data && data.length > 0) {
-        const matches = data.filter((p: any) => {
-          const pName = p.nombre.toLowerCase();
-          return uniqueStems.some(s => pName.includes(s));
-        });
+        data.sort((a: any, b: any) => Number(a.precio) - Number(b.precio));
 
-        if (matches.length > 0) {
-          matches.sort((a: any, b: any) => Number(a.precio) - Number(b.precio));
-
-          return matches.slice(0, 20).map((item: any) => ({
-            referencia_id: item.referencia_id || item.id || `ref_${Math.random()}`,
-            nombre: item.nombre,
-            precio: Number(item.precio),
-            supermercado: item.supermercado_id || item.supermercado || 'general',
-            last_seen: item.last_seen || new Date().toISOString(),
-            kcal: item.kcal != null ? Number(item.kcal) : null,
-            proteinas: item.proteinas != null ? Number(item.proteinas) : null,
-            carbohidratos: item.carbohidratos != null ? Number(item.carbohidratos) : null,
-            grasas: item.grasas != null ? Number(item.grasas) : null
-          }));
-        }
+        return data.slice(0, 20).map((item: any) => ({
+          referencia_id: item.referencia_id || item.id || `ref_${Math.random()}`,
+          nombre: item.nombre,
+          precio: Number(item.precio),
+          supermercado: item.supermercado_id || item.supermercado || 'general',
+          last_seen: item.last_seen || new Date().toISOString(),
+          kcal: item.kcal != null ? Number(item.kcal) : null,
+          proteinas: item.proteinas != null ? Number(item.proteinas) : null,
+          carbohidratos: item.carbohidratos != null ? Number(item.carbohidratos) : null,
+          grasas: item.grasas != null ? Number(item.grasas) : null
+        }));
       }
     } catch (err) {
       console.warn('Error al consultar productos en Supabase DB:', err);
@@ -109,6 +120,11 @@ export async function searchProducts(
       const response = await fetch(url, {
         headers: { 'Accept': 'application/json' }
       });
+
+      if (response.status === 429) {
+        console.warn('SuperMarket API rate-limited (HTTP 429). Retornando resultados locales.');
+        return [];
+      }
 
       if (response.ok) {
         const json = await response.json();

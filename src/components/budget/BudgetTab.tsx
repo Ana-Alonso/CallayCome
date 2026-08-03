@@ -260,7 +260,7 @@ export const BudgetTab = ({
         for (const ing of unmapped) {
           if (!isMounted) break;
           try {
-            const results = await searchProducts(ing.name, preferred_supermarket);
+            const results = await searchProducts(ing.name, preferred_supermarket, false);
             if (results.length > 0 && isMounted) {
               const isSpecificSupermarket = preferred_supermarket !== 'todos' && preferred_supermarket !== 'cheapest';
               let selectedProd = results[0];
@@ -282,6 +282,7 @@ export const BudgetTab = ({
                 reference_id: selectedProd.referencia_id
               });
             }
+            await new Promise(r => setTimeout(r, 100));
           } catch (err) {
             console.error('Error auto-mapping on load:', err);
           }
