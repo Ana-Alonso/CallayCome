@@ -10,6 +10,12 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    env:
+      VITE_SUPABASE_URL: https://hukfxbxpjlimpbtbosrv.supabase.co
+      VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1a2Z4YnhwamxpbXBidGJvc3J2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTkyODUsImV4cCI6MjA5OTY5NTI4NX0.K3z7scxL2FzbWDSLizbdMp2sKIHhriSPibhtJzmhJIs
+      VITE_SUPERMARKET_SUPABASE_URL: https://njgzdcrapgrgyshhuows.supabase.co
+      VITE_SUPERMARKET_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qZ3pkY3JhcGdyZ3lzaGh1b3dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2Mzg2NzgsImV4cCI6MjEwMDIxNDY3OH0.gs_7C6_v7Id4I4Sk6PX5YpcA-ore1_u8zPPwlACC29k
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const SUPERMARKET_SUPABASE_URL = import.meta.env.VITE_SUPERMARKET_SUPABASE_URL || '';
-const SUPERMARKET_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPERMARKET_SUPABASE_ANON_KEY || '';
+const SUPERMARKET_SUPABASE_URL = import.meta.env.VITE_SUPERMARKET_SUPABASE_URL || 'https://placeholder-supermarket.supabase.co';
+const SUPERMARKET_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPERMARKET_SUPABASE_ANON_KEY || 'placeholder-key';
 const SUPERMARKET_API_BASE_URL = import.meta.env.VITE_SUPERMARKET_API_BASE_URL || '';
 
 // Create a secondary Supabase client specifically for the SuperMarketAPI project.
