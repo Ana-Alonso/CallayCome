@@ -240,34 +240,46 @@ export const BudgetTab = ({
     setIsUpdatingAll(true);
     try {
       let count = 0;
-      // Loop through all weekly ingredients
+      const isSpecificSupermarket = preferred_supermarket !== 'todos' && preferred_supermarket !== 'cheapest';
+
       for (const ing of weekly_ingredients) {
-        // If it is not mapped, or if its supermarket doesn't match the preferred supermarket (if specific)
         const needsMapping = !ing.isMapped || 
-          (preferred_supermarket !== 'todos' && preferred_supermarket !== 'cheapest' && ing.supermarket !== preferred_supermarket);
+          (isSpecificSupermarket && ing.supermarket !== preferred_supermarket);
           
         if (needsMapping) {
           const queryStr = ing.name;
-          const results = await searchProducts(queryStr, preferred_supermarket === 'cheapest' ? undefined : preferred_supermarket);
+          const results = await searchProducts(queryStr, preferred_supermarket);
           if (results.length > 0) {
-            // Find the cheapest one
-            const cheapest = results.reduce((min, p) => p.precio < min.precio ? p : min, results[0]);
-            const parsed = parse_product_info(cheapest.nombre);
+            let selectedProd = results[0];
+            if (isSpecificSupermarket) {
+              const exactMatch = results.find(p => p.supermercado === preferred_supermarket);
+              if (exactMatch) selectedProd = exactMatch;
+            } else {
+              selectedProd = results.reduce((min, p) => p.precio < min.precio ? p : min, results[0]);
+            }
+
+            const parsed = parse_product_info(selectedProd.nombre);
             
             await handle_save_mapping({
               ingredient_name: ing.name,
-              product_name: cheapest.nombre,
-              price: cheapest.precio,
+              product_name: selectedProd.nombre,
+              price: selectedProd.precio,
               package_qty: parsed.quantity,
               package_unit: parsed.unit,
-              supermarket_id: cheapest.supermercado,
-              reference_id: cheapest.referencia_id
+              supermarket_id: selectedProd.supermercado,
+              reference_id: selectedProd.referencia_id
             });
             count++;
           }
         }
       }
-      alert(`Búsqueda y vinculación de ingredientes actualizada con éxito. Se vincularon ${count} productos.`);
+      const labelMode = preferred_supermarket === 'cheapest' 
+        ? 'el más barato' 
+        : preferred_supermarket === 'todos' 
+          ? 'modo comparador' 
+          : preferred_supermarket.toUpperCase();
+
+      alert(`Búsqueda y vinculación de ingredientes actualizada con éxito. Se vincularon ${count} productos en base a: ${labelMode}.`);
     } catch (e: any) {
       console.error(e);
       alert("Error al actualizar la búsqueda: " + e.message);

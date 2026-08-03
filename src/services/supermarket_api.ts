@@ -3,7 +3,6 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const SUPERMARKET_SUPABASE_URL = import.meta.env.VITE_SUPERMARKET_SUPABASE_URL || 'https://placeholder-supermarket.supabase.co';
 const SUPERMARKET_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPERMARKET_SUPABASE_ANON_KEY || 'placeholder-key';
 
-
 if (typeof window !== 'undefined') {
   try {
     localStorage.removeItem('supermarket_supabase_session');
@@ -53,9 +52,8 @@ export async function searchProducts(
   });
 
   const uniqueStems = [...new Set(stems)];
-  const targetSuper = supermarketId && supermarketId !== 'todos' && supermarketId !== 'cheapest' 
-    ? supermarketId.toLowerCase() 
-    : null;
+  const isSpecificSupermarket = supermarketId && supermarketId !== 'todos' && supermarketId !== 'cheapest';
+  const targetSuper = isSpecificSupermarket ? supermarketId.toLowerCase() : null;
 
   try {
     const { data, error } = await supermarketSupabase
@@ -65,17 +63,27 @@ export async function searchProducts(
 
     if (!error && data && data.length > 0) {
       // Filter products matching any stem
-      const matches = data.filter((p: any) => {
+      let matches = data.filter((p: any) => {
         const pName = p.nombre.toLowerCase();
         return uniqueStems.some(s => pName.includes(s));
       });
 
-      // Sort: products matching targetSuper first, then by price
+      // IF SPECIFIC SUPERMARKET SELECTED: Filter to exact supermarket first
+      if (isSpecificSupermarket && targetSuper) {
+        const exactMatches = matches.filter((p: any) => p.supermercado_id === targetSuper);
+        if (exactMatches.length > 0) {
+          matches = exactMatches;
+        }
+      }
+
+      // Sort: if specific supermarket, prioritize targetSuper; if cheapest/todos, sort by price
       matches.sort((a: any, b: any) => {
-        const aPref = targetSuper && a.supermercado_id === targetSuper;
-        const bPref = targetSuper && b.supermercado_id === targetSuper;
-        if (aPref && !bPref) return -1;
-        if (!aPref && bPref) return 1;
+        if (targetSuper) {
+          const aPref = a.supermercado_id === targetSuper;
+          const bPref = b.supermercado_id === targetSuper;
+          if (aPref && !bPref) return -1;
+          if (!aPref && bPref) return 1;
+        }
         return Number(a.precio) - Number(b.precio);
       });
 
