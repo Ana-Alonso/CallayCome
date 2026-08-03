@@ -659,11 +659,12 @@ export const BudgetTab = ({
                       fontSize: '15px',
                       fontWeight: '800',
                       color: ing.isMapped ? '#4ADE80' : '#FFA726',
-                      backgroundColor: ing.isMapped ? 'rgba(74, 222, 128, 0.12)' : 'rgba(255, 167, 38, 0.12)',
-                      border: `1px solid ${ing.isMapped ? 'rgba(74, 222, 128, 0.25)' : 'rgba(255, 167, 38, 0.25)'}`,
-                      padding: '3px 9px',
+                      backgroundColor: ing.isMapped ? 'rgba(74, 222, 128, 0.15)' : 'rgba(255, 167, 38, 0.15)',
+                      border: `1px solid ${ing.isMapped ? '#4ADE80' : '#FFA726'}`,
+                      padding: '3px 10px',
                       borderRadius: '8px',
-                      display: 'inline-block'
+                      display: 'inline-block',
+                      whiteSpace: 'nowrap'
                     }}>
                       {ing.cost.toFixed(2)} €
                     </span>
@@ -716,15 +717,16 @@ export const BudgetTab = ({
                         width: '32px',
                         height: '32px',
                         borderRadius: '8px',
-                        backgroundColor: 'rgba(56, 189, 248, 0.15)',
-                        border: '1px solid rgba(56, 189, 248, 0.3)',
-                        color: '#38BDF8',
+                        backgroundColor: '#0284C7',
+                        border: '1px solid #38BDF8',
+                        color: '#FFFFFF',
                         cursor: 'pointer',
-                        padding: 0
+                        padding: 0,
+                        flexShrink: 0
                       }}
                       title="Buscar o vincular producto"
                     >
-                      {ing.isMapped ? <Edit2 size={15} color="#38BDF8" /> : <Search size={15} color="#38BDF8" />}
+                      {ing.isMapped ? <Edit2 size={16} color="#FFFFFF" /> : <Search size={16} color="#FFFFFF" />}
                     </button>
                   </Box>
                 </Box>
