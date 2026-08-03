@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Search, 
   Check, 
@@ -172,6 +172,9 @@ export const BudgetTab = ({
       let matchedProdName = '';
       const isSpecificSuper = preferred_supermarket !== 'todos' && preferred_supermarket !== 'cheapest';
       let supermarket = isSpecificSuper ? preferred_supermarket : '';
+      let productPrice: number | null = null;
+      let packageQty: number | null = null;
+      let packageUnit: string | null = null;
 
       if (mapping && (!isSpecificSuper || mapping.supermarket_id === preferred_supermarket)) {
         cost = calculate_ingredient_cost(
@@ -185,6 +188,9 @@ export const BudgetTab = ({
         isMapped = true;
         matchedProdName = mapping.product_name;
         supermarket = mapping.supermarket_id;
+        productPrice = mapping.price;
+        packageQty = mapping.package_qty;
+        packageUnit = mapping.package_unit;
       } else {
         // Fallback estimated cost based on quantity for current selected supermarket
         cost = 0.50 * req.recipeCount * (budget_scope === 'individual' ? 1 : (household_members / 2));
@@ -198,6 +204,9 @@ export const BudgetTab = ({
         isMapped,
         matchedProdName,
         supermarket,
+        productPrice,
+        packageQty,
+        packageUnit,
         recipeCount: req.recipeCount
       };
     }).sort((a, b) => b.cost - a.cost);
@@ -217,6 +226,48 @@ export const BudgetTab = ({
     : cost_percentage > 85 
       ? '#ffa726' 
       : '#81c784';
+
+  // Auto-resolve prices for unmapped ingredients when tab loads
+  useEffect(() => {
+    let isMounted = true;
+    const autoMapOnLoad = async () => {
+      const unmapped = weekly_ingredients.filter(ing => !ing.isMapped);
+      if (unmapped.length > 0) {
+        for (const ing of unmapped) {
+          if (!isMounted) break;
+          try {
+            const results = await searchProducts(ing.name, preferred_supermarket);
+            if (results.length > 0 && isMounted) {
+              const isSpecificSupermarket = preferred_supermarket !== 'todos' && preferred_supermarket !== 'cheapest';
+              let selectedProd = results[0];
+              if (isSpecificSupermarket) {
+                const exactMatch = results.find(p => p.supermercado === preferred_supermarket);
+                if (exactMatch) selectedProd = exactMatch;
+              } else {
+                selectedProd = results.reduce((min, p) => p.precio < min.precio ? p : min, results[0]);
+              }
+
+              const parsed = parse_product_info(selectedProd.nombre);
+              await handle_save_mapping({
+                ingredient_name: ing.name,
+                product_name: selectedProd.nombre,
+                price: selectedProd.precio,
+                package_qty: parsed.quantity,
+                package_unit: parsed.unit,
+                supermarket_id: selectedProd.supermercado,
+                reference_id: selectedProd.referencia_id
+              });
+            }
+          } catch (err) {
+            console.error('Error auto-mapping on load:', err);
+          }
+        }
+      }
+    };
+
+    autoMapOnLoad();
+    return () => { isMounted = false; };
+  }, [selected_week, preferred_supermarket]);
 
   const trigger_product_search = async (queryStr: string, forceApi: boolean = false) => {
     if (!queryStr.trim()) return;
@@ -597,9 +648,8 @@ export const BudgetTab = ({
                   </div>
                   
                   {ing.isMapped ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', flexWrap: 'wrap', marginTop: '2px' }}>
                       <span style={{
-                        fontSize: '9px',
                         padding: '1px 5px',
                         borderRadius: '3px',
                         backgroundColor: ing.supermarket === 'mercadona' ? '#00A859' :
@@ -612,13 +662,22 @@ export const BudgetTab = ({
                       }}>
                         {ing.supermarket}
                       </span>
-                      <span style={{ color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
                         {ing.matchedProdName}
                       </span>
+                      {ing.productPrice !== null && (
+                        <span style={{ color: '#4ADE80', fontWeight: 'bold', backgroundColor: 'rgba(74,222,128,0.1)', padding: '1px 6px', borderRadius: '4px', border: '1px solid rgba(74,222,128,0.2)' }}>
+                          🏷️ {ing.productPrice.toFixed(2)} € {ing.packageQty ? `(${ing.packageQty} ${ing.packageUnit})` : ''}
+                        </span>
+                      )}
                     </div>
                   ) : (
-                    <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <HelpCircle size={10} /> Precio estimado (Sin vincular en {preferred_supermarket.toUpperCase()})
+                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                      <HelpCircle size={12} style={{ color: '#FFA726' }} />
+                      <span>Sin vincular</span>
+                      <span style={{ color: '#FFA726', backgroundColor: 'rgba(255,167,38,0.1)', padding: '1px 6px', borderRadius: '4px', border: '1px solid rgba(255,167,38,0.2)' }}>
+                        Est. {(ing.cost * 2).toFixed(2)} € / prod.
+                      </span>
                     </div>
                   )}
                 </Box>
@@ -628,7 +687,7 @@ export const BudgetTab = ({
                     <div style={{ fontSize: '14px', fontWeight: 'bold', color: ing.isMapped ? '#81c784' : 'rgba(255,255,255,0.6)' }}>
                       {ing.cost.toFixed(2)} €
                     </div>
-                    <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)' }}>
+                    <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)' }}>
                       {ing.recipeCount} {ing.recipeCount === 1 ? 'receta' : 'recetas'}
                     </div>
                   </div>
