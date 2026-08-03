@@ -215,17 +215,29 @@ export const Planner = ({
 
   const current_day = get_current_planner_day();
 
-  const is_android = typeof window !== 'undefined' && (window as any).Capacitor?.getPlatform() === 'android';
-
   return (
     <PageContainer>
-      <PlannerHeader style={is_android ? { flexDirection: 'column', alignItems: 'flex-start', gap: 12, marginBottom: 16 } : undefined}>
+      <PlannerHeader>
         <PlannerTitle>Planificación 30 Días</PlannerTitle>
-        <FlexRow style={is_android ? { gap: 8, width: '100%', flexWrap: 'wrap' } : { gap: 8 }}>
+        <FlexRow style={{ gap: 8, width: '100%', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
           <Boton
             texto="¡Pánico! 🚨"
             on_click={handle_panic_click}
             variante="contained"
+            color="error"
+            clase_css="btn-sm"
+          />
+          <Boton
+            texto="⚡ Auto-Generar"
+            on_click={on_auto_generate}
+            variante="contained"
+            color="success"
+            clase_css="btn-sm"
+          />
+          <Boton
+            texto="🗑️ Limpiar"
+            on_click={on_clear}
+            variante="outlined"
             color="error"
             clase_css="btn-sm"
           />
@@ -253,7 +265,7 @@ export const Planner = ({
             clase_css="btn-sm"
           />
           <Boton
-            texto="Filtros"
+            texto="Filtros 🔍"
             on_click={on_open_filters}
             variante="outlined"
             color="primary"

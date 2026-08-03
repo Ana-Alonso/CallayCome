@@ -12,7 +12,6 @@ export const AppContainer = styled(Box)(({ theme }) => ({
   position: 'relative',
   paddingTop: 'env(safe-area-inset-top, 0px)',
   paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
-  overflowX: 'hidden',
   boxSizing: 'border-box',
   [theme.breakpoints.up('md')]: {
     maxWidth: '100%',
