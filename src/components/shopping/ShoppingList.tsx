@@ -87,14 +87,15 @@ export const ShoppingList = ({
   };
 
   const pending_count = shopping_items.filter(i => !i.purchased).length;
-  const estimated_base = pending_count * 1.45;
+  // Aligned with BudgetTab weekly ingredient cost estimation (~1.93€ avg per item in list)
+  const estimated_base = pending_count * 1.931;
 
   const supermarketEstimates: SupermarketEstimate[] = [
-    { name: 'Mercadona', id: 'mercadona', totalCost: Math.round(estimated_base * 0.98 * 100) / 100, logoColor: '#10b981', badge: 'Más Recomendado 🥇' },
-    { name: 'Aldi', id: 'aldi', totalCost: Math.round(estimated_base * 0.95 * 100) / 100, logoColor: '#3b82f6', badge: 'Más Económico 💰' },
-    { name: 'Dia', id: 'dia', totalCost: Math.round(estimated_base * 1.02 * 100) / 100, logoColor: '#ef4444' },
-    { name: 'Eroski', id: 'eroski', totalCost: Math.round(estimated_base * 1.05 * 100) / 100, logoColor: '#f59e0b' },
-    { name: 'Carrefour', id: 'carrefour', totalCost: Math.round(estimated_base * 1.08 * 100) / 100, logoColor: '#8b5cf6' }
+    { name: 'Mercadona', id: 'mercadona', totalCost: Math.round(estimated_base * 1.00 * 100) / 100, logoColor: '#10b981', badge: 'Más Recomendado 🥇' },
+    { name: 'Aldi', id: 'aldi', totalCost: Math.round(estimated_base * 0.96 * 100) / 100, logoColor: '#3b82f6', badge: 'Más Económico 💰' },
+    { name: 'Dia', id: 'dia', totalCost: Math.round(estimated_base * 1.03 * 100) / 100, logoColor: '#ef4444' },
+    { name: 'Eroski', id: 'eroski', totalCost: Math.round(estimated_base * 1.06 * 100) / 100, logoColor: '#f59e0b' },
+    { name: 'Carrefour', id: 'carrefour', totalCost: Math.round(estimated_base * 1.09 * 100) / 100, logoColor: '#8b5cf6' }
   ].sort((a, b) => a.totalCost - b.totalCost);
 
   const section_header = (icon: React.ReactNode, label: string, count: number) => (
