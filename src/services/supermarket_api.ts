@@ -32,96 +32,65 @@ export interface SuperMarketProduct {
   categoria_nombre?: string;
 }
 
-async function getAccessToken(): Promise<string> {
-  return SUPERMARKET_SUPABASE_ANON_KEY;
-}
-
 export async function searchProducts(
   query: string,
   supermarketId?: string
 ): Promise<SuperMarketProduct[]> {
-  if (!query.trim()) return [];
+  if (!query || !query.trim()) return [];
+
+  const cleanQuery = query.trim().toLowerCase();
 
   try {
     let q = supermarketSupabase
       .from('productos')
       .select('referencia_id, nombre, precio, supermercado_id, last_seen, kcal, proteinas, carbohidratos, grasas')
-      .ilike('nombre', `%${query.trim()}%`);
+      .ilike('nombre', `%${cleanQuery}%`);
 
     if (supermarketId && supermarketId !== 'todos' && supermarketId !== 'cheapest') {
       q = q.eq('supermercado_id', supermarketId.toLowerCase());
     }
 
-    q = q.limit(20);
+    q = q.limit(30);
 
     const { data, error } = await q;
 
-    if (error) {
-      console.warn('Error querying Supabase directly, falling back to Render API:', error.message);
-    } else if (data && data.length > 0) {
-      const queryLower = query.toLowerCase().trim();
-      const hasGoodMatch = data.some((item: any) => {
-        const nameLower = item.nombre.toLowerCase();
-        return nameLower.startsWith(queryLower) || nameLower.indexOf(queryLower) <= 8;
-      });
-
-      if (hasGoodMatch) {
-        return data.map((item: any) => ({
-          referencia_id: item.referencia_id,
-          nombre: item.nombre,
-          precio: Number(item.precio),
-          supermercado: item.supermercado_id,
-          last_seen: item.last_seen,
-          kcal: item.kcal != null ? Number(item.kcal) : null,
-          proteinas: item.proteinas != null ? Number(item.proteinas) : null,
-          carbohidratos: item.carbohidratos != null ? Number(item.carbohidratos) : null,
-          grasas: item.grasas != null ? Number(item.grasas) : null
-        }));
-      }
+    if (!error && data && data.length > 0) {
+      return data.map((item: any) => ({
+        referencia_id: item.referencia_id || item.id || `ref_${Math.random()}`,
+        nombre: item.nombre,
+        precio: Number(item.precio),
+        supermercado: item.supermercado_id || item.supermercado || 'general',
+        last_seen: item.last_seen || new Date().toISOString(),
+        kcal: item.kcal != null ? Number(item.kcal) : null,
+        proteinas: item.proteinas != null ? Number(item.proteinas) : null,
+        carbohidratos: item.carbohidratos != null ? Number(item.carbohidratos) : null,
+        grasas: item.grasas != null ? Number(item.grasas) : null
+      }));
     }
   } catch (err) {
-    console.warn('Direct database search failed, falling back to Render API:', err);
+    console.warn('Búsqueda directa en Supabase falló, intentando API secundaria:', err);
   }
 
-  const token = await getAccessToken();
-  if (!token) {
-    throw new Error('No se pudo establecer conexión autenticada con la API para iniciar el raspado.');
-  }
+  // Optional REST API fallback (silent fail returning [])
+  if (SUPERMARKET_API_BASE_URL) {
+    try {
+      const url = supermarketId && supermarketId !== 'todos' && supermarketId !== 'cheapest'
+        ? `${SUPERMARKET_API_BASE_URL}/supermercados/${supermarketId.toLowerCase()}/search?q=${encodeURIComponent(cleanQuery)}`
+        : `${SUPERMARKET_API_BASE_URL}/supermercados/search?q=${encodeURIComponent(cleanQuery)}`;
 
-  const cleanQuery = encodeURIComponent(query.trim());
-  let url = `${SUPERMARKET_API_BASE_URL}/supermercados/search?q=${cleanQuery}`;
-  if (supermarketId && supermarketId !== 'todos' && supermarketId !== 'cheapest') {
-    url = `${SUPERMARKET_API_BASE_URL}/supermercados/${supermarketId.toLowerCase()}/search?q=${cleanQuery}`;
-  }
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' }
+      });
 
-  let response: Response;
-  try {
-    response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json'
+      if (response.ok) {
+        const json = await response.json();
+        if (json.status === 'success' && Array.isArray(json.data)) {
+          return json.data as SuperMarketProduct[];
+        }
       }
-    });
-  } catch (err: any) {
-    console.error('Fetch to SuperMarket API failed:', err);
-    throw new Error(
-      'Error de Conexión: No se pudo contactar con la API de supermercados. ' +
-      'Por favor, comprueba tu conexión a internet o la disponibilidad del servidor.'
-    );
-  }
-
-  if (!response.ok) {
-    if (response.status === 429) {
-      throw new Error('Límite de peticiones de la API superado (Rate Limit). Inténtalo más tarde.');
+    } catch (e) {
+      console.warn('API secundaria de supermercados no disponible:', e);
     }
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData?.error?.description || 'Error al consultar la API de supermercados.');
-  }
-
-  const json = await response.json();
-  if (json.status === 'success' && Array.isArray(json.data)) {
-    return json.data as SuperMarketProduct[];
   }
 
   return [];
