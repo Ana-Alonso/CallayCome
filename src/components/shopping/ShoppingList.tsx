@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShoppingCart, PenLine, RefreshCw, AlertTriangle, Store } from 'lucide-react';
+import { ShoppingCart, PenLine, RefreshCw, AlertTriangle, Store, Plus, Search } from 'lucide-react';
 import { Boton } from '../common/Boton';
 import { ShoppingItemCard } from './ShoppingItemCard';
 import { Box } from '../common/Box';
@@ -169,26 +169,68 @@ export const ShoppingList = ({
         </CardContainer>
       )}
 
-      {/* Input custom item */}
-      <form onSubmit={handle_add_submit} className="form-agregar-manual">
+      {/* Input custom item form with modern glassmorphism */}
+      <form
+        onSubmit={handle_add_submit}
+        style={{
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '14px',
+          padding: '12px 14px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '10px',
+          alignItems: 'center',
+          backdropFilter: 'blur(10px)',
+          marginBottom: '14px'
+        }}
+      >
         <input
           type="text"
           placeholder="Añadir ítem manual..."
           value={customName}
           onChange={e => setCustomName(e.target.value)}
-          className="input-manual"
+          style={{
+            flex: '1 1 180px',
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '10px',
+            padding: '10px 14px',
+            color: '#ffffff',
+            fontSize: '14px',
+            outline: 'none'
+          }}
         />
         <input
           type="number"
           min={1}
           value={customQty}
           onChange={e => setCustomQty(Number(e.target.value))}
-          className="input-manual-cant"
+          style={{
+            width: '75px',
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '10px',
+            padding: '10px 10px',
+            color: '#ffffff',
+            fontSize: '14px',
+            textAlign: 'center',
+            outline: 'none'
+          }}
         />
         <select
           value={customUnit}
           onChange={e => setCustomUnit(e.target.value)}
-          className="select-manual-unit"
+          style={{
+            background: '#121826',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '10px',
+            padding: '10px 12px',
+            color: '#ffffff',
+            fontSize: '14px',
+            outline: 'none',
+            cursor: 'pointer'
+          }}
         >
           <option value="uds">uds</option>
           <option value="g">g</option>
@@ -197,25 +239,56 @@ export const ShoppingList = ({
           <option value="L">L</option>
           <option value="pack">pack</option>
         </select>
-        <button type="submit" className="btn-agregar-manual">
-          + Añadir
+        <button
+          type="submit"
+          style={{
+            background: 'linear-gradient(135deg, #f26841 0%, #ff8c42 100%)',
+            border: 'none',
+            borderRadius: '10px',
+            padding: '10px 16px',
+            color: '#ffffff',
+            fontWeight: 700,
+            fontSize: '14px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            boxShadow: '0 4px 14px rgba(242,104,65,0.35)',
+            transition: 'transform 0.1s ease'
+          }}
+        >
+          <Plus size={16} /> Añadir
         </button>
       </form>
 
-      <Spacer height={12} />
-
-      {/* Search box */}
+      {/* Search box with glassmorphism style & Search icon */}
       {shopping_items.length > 0 && (
-        <input
-          type="text"
-          placeholder="🔍 Buscar en la lista de la compra..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="input-buscar-lista"
-        />
+        <div style={{ position: 'relative', width: '100%', marginBottom: '16px' }}>
+          <Search
+            size={18}
+            color="rgba(255, 255, 255, 0.4)"
+            style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+          />
+          <input
+            type="text"
+            placeholder="Buscar en la lista de la compra..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '12px',
+              padding: '12px 14px 12px 42px',
+              color: '#ffffff',
+              fontSize: '14px',
+              outline: 'none',
+              backdropFilter: 'blur(10px)',
+              boxSizing: 'border-box'
+            }}
+          />
+        </div>
       )}
-
-      <Spacer height={12} />
 
       {/* Shopping List Items */}
       {shopping_items.length === 0 ? (
