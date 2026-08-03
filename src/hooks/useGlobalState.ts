@@ -333,7 +333,8 @@ export const useGlobalState = () => {
 
   const trigger_auto_retrain = async (): Promise<void> => {
     try {
-      const response = await fetch('http://localhost:8002/api/ai/auto-retrain', { method: 'POST' });
+      const recetatorUrl = import.meta.env.VITE_RECETATOR_API_URL || 'https://recetator.onrender.com';
+      const response = await fetch(`${recetatorUrl}/api/ai/auto-retrain`, { method: 'POST' });
       const json = await response.json();
       if (json?.data?.retrained) {
         trigger_push('🧠 La IA ha aprendido', 'El modelo se ha reentrenado con los nuevos votos de la familia.');

@@ -49,7 +49,8 @@ export const AddRecipe = ({ on_add, handle_save_mapping, db_ingredients = [] }: 
     
     const detectAllergens = async () => {
       try {
-        const res = await fetch('http://localhost:8002/api/ai/detect-allergens', {
+        const recetatorUrl = import.meta.env.VITE_RECETATOR_API_URL || 'https://recetator.onrender.com';
+        const res = await fetch(`${recetatorUrl}/api/ai/detect-allergens`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -98,7 +99,8 @@ export const AddRecipe = ({ on_add, handle_save_mapping, db_ingredients = [] }: 
         .map(a => a.trim().toLowerCase())
         .filter(a => a.length > 0);
 
-      const res = await fetch('http://localhost:8002/api/ai/generate-recipe', {
+      const recetatorUrl = import.meta.env.VITE_RECETATOR_API_URL || 'https://recetator.onrender.com';
+      const res = await fetch(`${recetatorUrl}/api/ai/generate-recipe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
