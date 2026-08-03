@@ -2,6 +2,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const SUPERMARKET_SUPABASE_URL = import.meta.env.VITE_SUPERMARKET_SUPABASE_URL || 'https://placeholder-supermarket.supabase.co';
 const SUPERMARKET_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPERMARKET_SUPABASE_ANON_KEY || 'placeholder-key';
+const SUPERMARKET_API_BASE_URL = import.meta.env.VITE_SUPERMARKET_API_BASE_URL || 'https://supermarketapi-z9yb.onrender.com/api/v1';
 
 if (typeof window !== 'undefined') {
   try {
@@ -55,6 +56,7 @@ export async function searchProducts(
   const isSpecificSupermarket = supermarketId && supermarketId !== 'todos' && supermarketId !== 'cheapest';
   const targetSuper = isSpecificSupermarket ? supermarketId.toLowerCase() : null;
 
+  // 1. FIRST TRY DATABASE SEARCH (SUPABASE)
   try {
     const { data, error } = await supermarketSupabase
       .from('productos')
@@ -62,13 +64,12 @@ export async function searchProducts(
       .limit(200);
 
     if (!error && data && data.length > 0) {
-      // Filter products matching any stem
       let matches = data.filter((p: any) => {
         const pName = p.nombre.toLowerCase();
         return uniqueStems.some(s => pName.includes(s));
       });
 
-      // IF SPECIFIC SUPERMARKET SELECTED: Filter to exact supermarket first
+      // Filter to specific supermarket if specified
       if (isSpecificSupermarket && targetSuper) {
         const exactMatches = matches.filter((p: any) => p.supermercado_id === targetSuper);
         if (exactMatches.length > 0) {
@@ -76,31 +77,64 @@ export async function searchProducts(
         }
       }
 
-      // Sort: if specific supermarket, prioritize targetSuper; if cheapest/todos, sort by price
-      matches.sort((a: any, b: any) => {
-        if (targetSuper) {
-          const aPref = a.supermercado_id === targetSuper;
-          const bPref = b.supermercado_id === targetSuper;
-          if (aPref && !bPref) return -1;
-          if (!aPref && bPref) return 1;
-        }
-        return Number(a.precio) - Number(b.precio);
-      });
+      if (matches.length > 0) {
+        matches.sort((a: any, b: any) => {
+          if (targetSuper) {
+            const aPref = a.supermercado_id === targetSuper;
+            const bPref = b.supermercado_id === targetSuper;
+            if (aPref && !bPref) return -1;
+            if (!aPref && bPref) return 1;
+          }
+          return Number(a.precio) - Number(b.precio);
+        });
 
-      return matches.slice(0, 20).map((item: any) => ({
-        referencia_id: item.referencia_id || item.id || `ref_${Math.random()}`,
-        nombre: item.nombre,
-        precio: Number(item.precio),
-        supermercado: item.supermercado_id || item.supermercado || 'general',
-        last_seen: item.last_seen || new Date().toISOString(),
-        kcal: item.kcal != null ? Number(item.kcal) : null,
-        proteinas: item.proteinas != null ? Number(item.proteinas) : null,
-        carbohidratos: item.carbohidratos != null ? Number(item.carbohidratos) : null,
-        grasas: item.grasas != null ? Number(item.grasas) : null
-      }));
+        return matches.slice(0, 20).map((item: any) => ({
+          referencia_id: item.referencia_id || item.id || `ref_${Math.random()}`,
+          nombre: item.nombre,
+          precio: Number(item.precio),
+          supermercado: item.supermercado_id || item.supermercado || 'general',
+          last_seen: item.last_seen || new Date().toISOString(),
+          kcal: item.kcal != null ? Number(item.kcal) : null,
+          proteinas: item.proteinas != null ? Number(item.proteinas) : null,
+          carbohidratos: item.carbohidratos != null ? Number(item.carbohidratos) : null,
+          grasas: item.grasas != null ? Number(item.grasas) : null
+        }));
+      }
     }
   } catch (err) {
-    console.warn('Error al consultar productos en Supabase:', err);
+    console.warn('Error al consultar productos en Supabase DB:', err);
+  }
+
+  // 2. IF NOT FOUND IN DATABASE, CALL THE SUPERMARKET API TO SCRAPE/FETCH REALTIME
+  if (SUPERMARKET_API_BASE_URL) {
+    try {
+      const url = isSpecificSupermarket && targetSuper
+        ? `${SUPERMARKET_API_BASE_URL}/supermercados/${targetSuper}/search?q=${encodeURIComponent(cleanQuery)}`
+        : `${SUPERMARKET_API_BASE_URL}/supermercados/search?q=${encodeURIComponent(cleanQuery)}`;
+
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (response.ok) {
+        const json = await response.json();
+        if (json.status === 'success' && Array.isArray(json.data)) {
+          return json.data.map((item: any) => ({
+            referencia_id: item.referencia_id || item.id || `ref_${Math.random()}`,
+            nombre: item.nombre,
+            precio: Number(item.precio),
+            supermercado: item.supermercado || item.supermercado_id || 'general',
+            last_seen: item.last_seen || new Date().toISOString(),
+            kcal: item.kcal != null ? Number(item.kcal) : null,
+            proteinas: item.proteinas != null ? Number(item.proteinas) : null,
+            carbohidratos: item.carbohidratos != null ? Number(item.carbohidratos) : null,
+            grasas: item.grasas != null ? Number(item.grasas) : null
+          }));
+        }
+      }
+    } catch (apiErr) {
+      console.warn('SuperMarket API fallback no disponible:', apiErr);
+    }
   }
 
   return [];
