@@ -67,6 +67,7 @@ export const BudgetTab = ({
   
   const [selected_week, set_selected_week] = useState<number>(active_week_info.week_number);
   const [selected_recipe_for_detail, setSelectedRecipeForDetail] = useState<Recipe | null>(null);
+  const [expanded_ingredient, setExpandedIngredient] = useState<string | null>(null);
 
   // Ingredient search modal states
   const [mapping_ingredient_name, setMappingIngredientName] = useState<string>('');
@@ -114,7 +115,12 @@ export const BudgetTab = ({
 
   // 1. Gather all required ingredients for the selected week's recipes (scaled by individual / family members)
   const gather_weekly_ingredients = () => {
-    const required: Record<string, { quantity: number; unit: string; recipeCount: number }> = {};
+    const required: Record<string, {
+      quantity: number;
+      unit: string;
+      recipeCount: number;
+      recipes: Array<{ recipeName: string; quantity: number; unit: string }>;
+    }> = {};
     const target_members = budget_scope === 'individual' ? 1 : Math.max(1, household_members);
 
     week_plan.forEach(dayPlan => {
@@ -128,11 +134,11 @@ export const BudgetTab = ({
         const recipe = recipes.find(r => r.id === recipeId);
         if (recipe && recipe.ingredients) {
           const recipePortions = (recipe as any).portions || (recipe as any).servings || 1;
-          const scaleFactor = target_members / recipePortions;
+          const batchesNeeded = Math.max(1, Math.ceil(target_members / recipePortions));
 
           recipe.ingredients.forEach(ing => {
             const key = ing.name.toLowerCase().trim();
-            const scaledQty = ing.quantity * scaleFactor;
+            const scaledQty = ing.quantity * batchesNeeded;
             const norm = normalize_unit(scaledQty, ing.unit);
 
             if (required[key]) {
@@ -144,8 +150,28 @@ export const BudgetTab = ({
                 required[key].quantity += scaledQty;
               }
               required[key].recipeCount += 1;
+
+              const existingUsage = required[key].recipes.find(r => r.recipeName === recipe.name);
+              if (existingUsage) {
+                existingUsage.quantity = Number((existingUsage.quantity + norm.value).toFixed(2));
+              } else {
+                required[key].recipes.push({
+                  recipeName: recipe.name,
+                  quantity: Number(norm.value.toFixed(2)),
+                  unit: norm.baseUnit
+                });
+              }
             } else {
-              required[key] = { quantity: norm.value, unit: norm.baseUnit, recipeCount: 1 };
+              required[key] = {
+                quantity: Number(norm.value.toFixed(2)),
+                unit: norm.baseUnit,
+                recipeCount: 1,
+                recipes: [{
+                  recipeName: recipe.name,
+                  quantity: Number(norm.value.toFixed(2)),
+                  unit: norm.baseUnit
+                }]
+              };
             }
           });
         }
@@ -192,12 +218,12 @@ export const BudgetTab = ({
         packageUnit = mapping.package_unit;
       } else {
         // Fallback estimated cost based on quantity for current selected supermarket
-        cost = 0.50 * req.recipeCount * (budget_scope === 'individual' ? 1 : (household_members / 2));
+        cost = 0.50 * req.recipeCount * (budget_scope === 'individual' ? 1 : Math.max(1, household_members / 2));
       }
 
       return {
         name: displayName,
-        quantity: req.quantity,
+        quantity: Number(req.quantity.toFixed(2)),
         unit: req.unit,
         cost: Number(cost.toFixed(2)),
         isMapped,
@@ -206,7 +232,8 @@ export const BudgetTab = ({
         productPrice,
         packageQty,
         packageUnit,
-        recipeCount: req.recipeCount
+        recipeCount: req.recipeCount,
+        recipes: req.recipes
       };
     }).sort((a, b) => b.cost - a.cost);
   };
@@ -724,8 +751,22 @@ export const BudgetTab = ({
                   </div>
 
                   <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                    <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)' }}>
-                      {ing.recipeCount} {ing.recipeCount === 1 ? 'receta' : 'recetas'}
+                    <span 
+                      onClick={() => setExpandedIngredient(expanded_ingredient === ing.name ? null : ing.name)}
+                      style={{
+                        fontSize: '10px',
+                        color: expanded_ingredient === ing.name ? '#38BDF8' : 'rgba(255,255,255,0.7)',
+                        backgroundColor: expanded_ingredient === ing.name ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.06)',
+                        border: `1px solid ${expanded_ingredient === ing.name ? '#38BDF8' : 'rgba(255,255,255,0.12)'}`,
+                        padding: '3px 7px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        userSelect: 'none'
+                      }}
+                      title="Toca para ver la cantidad de este ingrediente usada en cada receta"
+                    >
+                      {ing.recipeCount} {ing.recipeCount === 1 ? 'receta' : 'recetas'} {expanded_ingredient === ing.name ? '▲' : '▼'}
                     </span>
                     <button
                       type="button"
@@ -750,6 +791,37 @@ export const BudgetTab = ({
                     </button>
                   </Box>
                 </Box>
+
+                {/* EXPANDABLE RECIPE BREAKDOWN */}
+                {expanded_ingredient === ing.name && ing.recipes && ing.recipes.length > 0 && (
+                  <Box style={{
+                    width: '100%',
+                    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    padding: '8px 10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '5px',
+                    textAlign: 'left',
+                    marginTop: '4px',
+                    boxSizing: 'border-box'
+                  }}>
+                    <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#38BDF8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      📋 Cantidad Requerida por Receta:
+                    </div>
+                    {ing.recipes.map((r, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.9)' }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>
+                          • {r.recipeName}
+                        </span>
+                        <span style={{ fontWeight: 'bold', color: '#81c784', flexShrink: 0 }}>
+                          {r.quantity} {r.unit}
+                        </span>
+                      </div>
+                    ))}
+                  </Box>
+                )}
               </Box>
             ))
           )}
