@@ -28,7 +28,7 @@ import type { MealPlanDay, Recipe, IngredientMapping } from '../../types';
 import { get_current_planner_day, get_active_week_info } from '../../utils/planner_helpers';
 import { searchProducts, type SuperMarketProduct } from '../../services/supermarket_api';
 import { parse_product_info, calculate_ingredient_cost } from '../../utils/product_parser';
-import { normalize_unit } from '../../utils/unit_converter';
+import { convert_qty_to_unit } from '../../utils/unit_converter';
 
 interface BudgetTabProps {
   meal_plan: MealPlanDay[];
@@ -139,37 +139,35 @@ export const BudgetTab = ({
           recipe.ingredients.forEach(ing => {
             const key = ing.name.toLowerCase().trim();
             const scaledQty = ing.quantity * batchesNeeded;
-            const norm = normalize_unit(scaledQty, ing.unit);
 
             if (required[key]) {
-              const storedNorm = normalize_unit(required[key].quantity, required[key].unit);
-              if (storedNorm.baseUnit === norm.baseUnit) {
-                required[key].quantity = storedNorm.value + norm.value;
-                required[key].unit = storedNorm.baseUnit;
-              } else {
-                required[key].quantity += scaledQty;
-              }
+              const convertedQty = convert_qty_to_unit(scaledQty, ing.unit, required[key].unit, ing.name);
+              required[key].quantity += convertedQty;
               required[key].recipeCount += 1;
 
               const existingUsage = required[key].recipes.find(r => r.recipeName === recipe.name);
               if (existingUsage) {
-                existingUsage.quantity = Number((existingUsage.quantity + norm.value).toFixed(2));
+                existingUsage.quantity = Number((existingUsage.quantity + scaledQty).toFixed(2));
               } else {
                 required[key].recipes.push({
                   recipeName: recipe.name,
-                  quantity: Number(norm.value.toFixed(2)),
-                  unit: norm.baseUnit
+                  quantity: Number(scaledQty.toFixed(2)),
+                  unit: ing.unit
                 });
               }
             } else {
+              const mapping = ingredient_mappings[key];
+              const preferredUnit = mapping ? mapping.package_unit : ing.unit;
+              const convertedInitial = convert_qty_to_unit(scaledQty, ing.unit, preferredUnit, ing.name);
+
               required[key] = {
-                quantity: Number(norm.value.toFixed(2)),
-                unit: norm.baseUnit,
+                quantity: Number(convertedInitial.toFixed(2)),
+                unit: preferredUnit,
                 recipeCount: 1,
                 recipes: [{
                   recipeName: recipe.name,
-                  quantity: Number(norm.value.toFixed(2)),
-                  unit: norm.baseUnit
+                  quantity: Number(scaledQty.toFixed(2)),
+                  unit: ing.unit
                 }]
               };
             }

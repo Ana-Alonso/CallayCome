@@ -51,6 +51,64 @@ export const normalize_unit = (qty: number, unitStr: string): NormalizedQty => {
 };
 
 /**
+ * Average weight in grams for 1 unit of common food ingredients.
+ */
+export const get_average_unit_weight_grams = (ingredientName: string): number => {
+  const name = ingredientName.toLowerCase().trim();
+  if (name.includes('huevo')) return 60;
+  if (name.includes('ajo') || name.includes('diente')) return 5;
+  if (name.includes('limón') || name.includes('limon') || name.includes('naranja')) return 120;
+  if (name.includes('manzana') || name.includes('pera') || name.includes('plátano') || name.includes('platano')) return 150;
+  if (name.includes('pan') || name.includes('rebanada')) return 30;
+  if (name.includes('zanahoria')) return 80;
+  if (name.includes('pimiento')) return 150;
+  if (name.includes('tomate')) return 150;
+  if (name.includes('cebolla')) return 150;
+  if (name.includes('patata') || name.includes('papa')) return 150;
+  // Default average weight for 1 produce unit
+  return 150;
+};
+
+/**
+ * Converts a quantity from one unit to a target unit for an ingredient.
+ */
+export const convert_qty_to_unit = (
+  qty: number,
+  fromUnit: string,
+  targetUnit: string,
+  ingredientName: string = ''
+): number => {
+  if (!fromUnit || !targetUnit || qty <= 0) return qty;
+  
+  const fromNorm = normalize_unit(qty, fromUnit);
+  const targetNorm = normalize_unit(1, targetUnit);
+
+  // 1. Same base unit (e.g. g <-> kg, ml <-> l, unidades <-> unidades)
+  if (fromNorm.baseUnit === targetNorm.baseUnit) {
+    return fromNorm.value / targetNorm.factor;
+  }
+
+  // 2. Weight (g) <-> Count (unidades)
+  const avgGram = get_average_unit_weight_grams(ingredientName);
+  if (fromNorm.baseUnit === 'g' && targetNorm.baseUnit === 'unidades') {
+    return fromNorm.value / avgGram;
+  }
+  if (fromNorm.baseUnit === 'unidades' && targetNorm.baseUnit === 'g') {
+    return (fromNorm.value * avgGram) / targetNorm.factor;
+  }
+
+  // 3. Volume (ml) <-> Weight (g) (Density ~ 1 g/ml for liquids/sauces)
+  if (fromNorm.baseUnit === 'ml' && targetNorm.baseUnit === 'g') {
+    return fromNorm.value / targetNorm.factor;
+  }
+  if (fromNorm.baseUnit === 'g' && targetNorm.baseUnit === 'ml') {
+    return fromNorm.value / targetNorm.factor;
+  }
+
+  return qty;
+};
+
+/**
  * Subtracts the recipe quantity from the pantry quantity.
  * If units are compatible (same base unit), does conversion. Otherwise, falls back to direct subtraction.
  */
