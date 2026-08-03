@@ -628,63 +628,63 @@ export const BudgetTab = ({
               <div>No hay recetas planificadas para {week_range.label}.</div>
             </CardContainer>
           ) : (
-            weekly_ingredients.map((ing) => (
+            weekly_ingredients.map(ing => (
               <Box 
                 key={ing.name}
                 style={{
                   backgroundColor: '#13131f',
-                  border: `1px solid ${ing.isMapped ? 'rgba(129, 199, 132, 0.2)' : 'rgba(255,255,255,0.06)'}`,
-                  borderRadius: '10px',
-                  padding: '10px 14px',
+                  border: '1px solid #1f1f2e',
+                  borderRadius: '12px',
+                  padding: '12px 14px',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  gap: '12px'
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  transition: 'transform 0.2s',
                 }}
               >
-                <Box style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left', minWidth: 0, flex: 1 }}>
-                  <div style={{ fontWeight: 'bold', color: '#fff', fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {ing.name} <span style={{ fontSize: '12px', fontWeight: 'normal', color: 'rgba(255,255,255,0.4)' }}>({ing.quantity} {ing.unit})</span>
+                <Box style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left', flex: '1 1 200px', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '14px' }}>{ing.name}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>
+                      ({ing.quantity} {ing.unit})
+                    </span>
                   </div>
                   
                   {ing.isMapped ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', flexWrap: 'wrap', marginTop: '2px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', flexWrap: 'wrap' }}>
                       <span style={{
-                        padding: '1px 5px',
-                        borderRadius: '3px',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
                         backgroundColor: ing.supermarket === 'mercadona' ? '#00A859' :
                                          ing.supermarket === 'carrefour' ? '#003893' :
                                          ing.supermarket === 'dia' ? '#E2001A' :
                                          ing.supermarket === 'aldi' ? '#002C5B' : '#005CA9',
                         color: '#fff',
                         fontWeight: 'bold',
+                        fontSize: '9px',
                         textTransform: 'uppercase'
                       }}>
                         {ing.supermarket}
                       </span>
-                      <span style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
+                      <span style={{ color: 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
                         {ing.matchedProdName}
                       </span>
-                      {ing.productPrice !== null && (
-                        <span style={{ color: '#4ADE80', fontWeight: 'bold', backgroundColor: 'rgba(74,222,128,0.1)', padding: '1px 6px', borderRadius: '4px', border: '1px solid rgba(74,222,128,0.2)' }}>
-                          🏷️ {ing.productPrice.toFixed(2)} € {ing.packageQty ? `(${ing.packageQty} ${ing.packageUnit})` : ''}
-                        </span>
-                      )}
                     </div>
                   ) : (
-                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <HelpCircle size={12} style={{ color: '#FFA726' }} />
-                      <span>Sin vincular</span>
-                      <span style={{ color: '#FFA726', backgroundColor: 'rgba(255,167,38,0.1)', padding: '1px 6px', borderRadius: '4px', border: '1px solid rgba(255,167,38,0.2)' }}>
-                        Est. {(ing.cost * 2).toFixed(2)} € / prod.
-                      </span>
+                      <span>Precio estimado (Sin vincular a supermercado)</span>
                     </div>
                   )}
                 </Box>
 
-                <Box style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Box style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'flex-end', flexShrink: 0 }}>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: ing.isMapped ? '#81c784' : 'rgba(255,255,255,0.6)' }}>
+                    <div style={{ fontSize: '15px', fontWeight: '800', color: ing.isMapped ? '#81c784' : 'rgba(255,255,255,0.6)' }}>
                       {ing.cost.toFixed(2)} €
                     </div>
                     <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)' }}>
@@ -692,7 +692,7 @@ export const BudgetTab = ({
                     </div>
                   </div>
 
-                  <Box style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '50%' }}>
+                  <Box style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '50%' }}>
                     <IconoBoton 
                       on_click={() => open_mapper_for_ingredient(ing.name)}
                       color="primary"
