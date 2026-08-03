@@ -173,16 +173,17 @@ export const ShoppingList = ({
       <form
         onSubmit={handle_add_submit}
         style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'rgba(18, 24, 38, 0.85)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
           borderRadius: '14px',
-          padding: '12px 14px',
+          padding: '14px 16px',
           display: 'flex',
           flexWrap: 'wrap',
           gap: '10px',
           alignItems: 'center',
-          backdropFilter: 'blur(10px)',
-          marginBottom: '14px'
+          backdropFilter: 'blur(12px)',
+          marginBottom: '16px',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
         }}
       >
         <input
@@ -192,13 +193,14 @@ export const ShoppingList = ({
           onChange={e => setCustomName(e.target.value)}
           style={{
             flex: '1 1 180px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
+            background: 'rgba(255, 255, 255, 0.06)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
             borderRadius: '10px',
             padding: '10px 14px',
             color: '#ffffff',
             fontSize: '14px',
-            outline: 'none'
+            outline: 'none',
+            boxSizing: 'border-box'
           }}
         />
         <input
@@ -208,14 +210,15 @@ export const ShoppingList = ({
           onChange={e => setCustomQty(Number(e.target.value))}
           style={{
             width: '75px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
+            background: 'rgba(255, 255, 255, 0.06)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
             borderRadius: '10px',
-            padding: '10px 10px',
+            padding: '10px 8px',
             color: '#ffffff',
             fontSize: '14px',
             textAlign: 'center',
-            outline: 'none'
+            outline: 'none',
+            boxSizing: 'border-box'
           }}
         />
         <select
@@ -223,13 +226,14 @@ export const ShoppingList = ({
           onChange={e => setCustomUnit(e.target.value)}
           style={{
             background: '#121826',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
             borderRadius: '10px',
             padding: '10px 12px',
             color: '#ffffff',
             fontSize: '14px',
             outline: 'none',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            boxSizing: 'border-box'
           }}
         >
           <option value="uds">uds</option>
@@ -245,7 +249,7 @@ export const ShoppingList = ({
             background: 'linear-gradient(135deg, #f26841 0%, #ff8c42 100%)',
             border: 'none',
             borderRadius: '10px',
-            padding: '10px 16px',
+            padding: '10px 18px',
             color: '#ffffff',
             fontWeight: 700,
             fontSize: '14px',
@@ -253,8 +257,8 @@ export const ShoppingList = ({
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            boxShadow: '0 4px 14px rgba(242,104,65,0.35)',
-            transition: 'transform 0.1s ease'
+            boxShadow: '0 4px 14px rgba(242,104,65,0.4)',
+            transition: 'transform 0.15s ease'
           }}
         >
           <Plus size={16} /> Añadir
@@ -266,8 +270,8 @@ export const ShoppingList = ({
         <div style={{ position: 'relative', width: '100%', marginBottom: '16px' }}>
           <Search
             size={18}
-            color="rgba(255, 255, 255, 0.4)"
-            style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+            color="rgba(255, 255, 255, 0.5)"
+            style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 2 }}
           />
           <input
             type="text"
@@ -276,15 +280,16 @@ export const ShoppingList = ({
             onChange={e => setSearchQuery(e.target.value)}
             style={{
               width: '100%',
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: 'rgba(18, 24, 38, 0.75)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
               borderRadius: '12px',
               padding: '12px 14px 12px 42px',
               color: '#ffffff',
               fontSize: '14px',
               outline: 'none',
               backdropFilter: 'blur(10px)',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
             }}
           />
         </div>
