@@ -47,11 +47,12 @@ export function normalizeEmail(email: string): string {
   const parts = cleanEmail.split('@');
   if (parts.length !== 2) return cleanEmail;
 
-  const [localPart, domain] = parts;
+  let [localPart, domain] = parts;
   let normalizedLocal = localPart;
 
   if (domain === 'gmail.com' || domain === 'googlemail.com') {
     normalizedLocal = localPart.replace(/\./g, '');
+    domain = 'gmail.com';
   }
 
   return `${normalizedLocal}@${domain}`;
