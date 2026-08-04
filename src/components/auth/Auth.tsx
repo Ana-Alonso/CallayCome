@@ -13,7 +13,7 @@ import {
   FlexRow
 } from '../common';
 import { get_supabase_client } from '../../services/supabase_client';
-import { validateEmailSecurity } from '../../utils/email_verifier';
+import { validateEmailSecurity, normalizeEmail } from '../../utils/email_verifier';
 
 interface AuthProps {
   on_login: (email: string, pass: string) => Promise<boolean>;
@@ -67,7 +67,8 @@ export const Auth = ({ on_login, on_signup, on_success }: AuthProps) => {
       if (mode === 'forgot') {
         const client = get_supabase_client();
         if (!client) throw new Error('Cliente Supabase no configurado.');
-        const { error } = await client.auth.resetPasswordForEmail(email.trim(), {
+        const targetEmail = normalizeEmail(email.trim());
+        const { error } = await client.auth.resetPasswordForEmail(targetEmail, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         if (error) throw error;

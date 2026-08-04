@@ -39,6 +39,25 @@ export interface EmailValidationResult {
 }
 
 /**
+ * Normaliza una dirección de correo electrónico (reemplaza puntos en Gmail, convierte a minúsculas y quita espacios).
+ */
+export function normalizeEmail(email: string): string {
+  if (!email || typeof email !== 'string') return '';
+  const cleanEmail = email.trim().toLowerCase();
+  const parts = cleanEmail.split('@');
+  if (parts.length !== 2) return cleanEmail;
+
+  const [localPart, domain] = parts;
+  let normalizedLocal = localPart;
+
+  if (domain === 'gmail.com' || domain === 'googlemail.com') {
+    normalizedLocal = localPart.replace(/\./g, '');
+  }
+
+  return `${normalizedLocal}@${domain}`;
+}
+
+/**
  * Valida un correo electrónico para registro de usuario.
  * @param email Correo electrónico a evaluar
  * @returns Resultado con booleano isValid y mensaje de error si aplica
@@ -79,13 +98,7 @@ export function validateEmailSecurity(email: string): EmailValidationResult {
     };
   }
 
-  // Normalización básica para Gmail (ej. u.s.e.r@gmail.com)
-  let normalizedLocal = localPart;
-  if (domain === 'gmail.com' || domain === 'googlemail.com') {
-    normalizedLocal = localPart.replace(/\./g, '');
-  }
-
-  const normalizedEmail = `${normalizedLocal}@${domain}`;
+  const normalizedEmail = normalizeEmail(cleanEmail);
 
   return {
     isValid: true,
