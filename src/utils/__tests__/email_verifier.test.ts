@@ -15,10 +15,14 @@ describe('Email Verifier Security - LCDLA', () => {
     expect(res.error).toContain('formato');
   });
 
-  it('should reject disposable/temporary email domains', () => {
-    const res = validateEmailSecurity('pruebas@mailinator.com');
-    expect(res.isValid).toBe(false);
-    expect(res.error).toContain('temporales o desechables');
+  it('should reject disposable/temporary email domains and their subdomains', () => {
+    const resExact = validateEmailSecurity('pruebas@mailinator.com');
+    expect(resExact.isValid).toBe(false);
+    expect(resExact.error).toContain('temporales o desechables');
+
+    const resSubdomain = validateEmailSecurity('user@foo.mailinator.com');
+    expect(resSubdomain.isValid).toBe(false);
+    expect(resSubdomain.error).toContain('temporales o desechables');
   });
 
   it('should reject plus addressing alias emails (e.g. user+alias@gmail.com)', () => {
