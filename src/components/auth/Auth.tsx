@@ -95,7 +95,8 @@ export const Auth = ({ on_login, on_signup, on_success }: AuthProps) => {
       }
 
       // Default: login
-      const ok = await on_login(email.trim(), password);
+      const targetLoginEmail = normalizeEmail(email.trim());
+      const ok = await on_login(targetLoginEmail, password);
       if (ok) {
         set_email('');
         set_password('');
