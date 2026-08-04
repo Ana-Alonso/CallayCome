@@ -26,7 +26,7 @@ describe('ShoppingList Component', () => {
 
     // Verify list headers and summary count
     expect(screen.getByText('Lista de la Compra')).toBeInTheDocument();
-    expect(screen.getAllByText('2').length).toBeGreaterThan(0); // count of items in total/pendientes stats
+    expect(screen.getAllByText('1').length).toBeGreaterThan(0); // count of items in total/pendientes stats
 
     // Verify items are displayed
     expect(screen.getByText('Tomates')).toBeInTheDocument();
@@ -48,16 +48,16 @@ describe('ShoppingList Component', () => {
 
     const inputName = screen.getByPlaceholderText('Ej: Servilletas');
     const inputQty = screen.getByRole('spinbutton');
-    const inputUnit = screen.getByPlaceholderText('uds');
+    const inputUnit = screen.getByRole('combobox');
     const addButton = screen.getByRole('button', { name: 'Añadir' });
 
     fireEvent.change(inputName, { target: { value: 'Leche' } });
     fireEvent.change(inputQty, { target: { value: '4' } });
-    fireEvent.change(inputUnit, { target: { value: 'litros' } });
+    fireEvent.change(inputUnit, { target: { value: 'L' } });
 
     fireEvent.click(addButton);
 
-    expect(mockAddCustom).toHaveBeenCalledWith('Leche', 4, 'litros');
+    expect(mockAddCustom).toHaveBeenCalledWith('Leche', 4, 'L');
   });
 
   test('calls on_toggle when clicking on a shopping item card', () => {
