@@ -84,7 +84,7 @@ export const RecipeDetailDialog = ({ recipe, abierto, al_cerrar }: RecipeDetailD
         </TextMuted>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
           gap: '6px 12px',
           marginBottom: 20,
           backgroundColor: 'rgba(255,255,255,0.03)',

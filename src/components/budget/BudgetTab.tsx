@@ -653,7 +653,13 @@ export const BudgetTab = ({
               <div>No hay recetas planificadas para {week_range.label}.</div>
             </CardContainer>
           ) : (
-            weekly_ingredients.map(ing => (
+            <Box style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: '12px',
+              width: '100%'
+            }}>
+              {weekly_ingredients.map(ing => (
               <Box 
                 key={ing.name}
                 style={{
@@ -822,7 +828,7 @@ export const BudgetTab = ({
                   </Box>
                 )}
               </Box>
-            ))
+            )))
           )}
         </Box>
 
