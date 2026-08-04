@@ -13,6 +13,7 @@ import {
   FlexRow
 } from '../common';
 import { get_supabase_client } from '../../services/supabase_client';
+import { validateEmailSecurity } from '../../utils/email_verifier';
 
 interface AuthProps {
   on_login: (email: string, pass: string) => Promise<boolean>;
@@ -75,10 +76,15 @@ export const Auth = ({ on_login, on_signup, on_success }: AuthProps) => {
       }
 
       if (mode === 'signup' && on_signup) {
+        const emailValidation = validateEmailSecurity(email.trim());
+        if (!emailValidation.isValid) {
+          throw new Error(emailValidation.error || 'El correo electrónico no es válido.');
+        }
+
         if (!reqs.length || !reqs.uppercase || !reqs.number || !reqs.special) {
           throw new Error('La contraseña no cumple todos los requisitos de seguridad.');
         }
-        const ok = await on_signup(email.trim(), password);
+        const ok = await on_signup(emailValidation.normalizedEmail || email.trim(), password);
         if (ok) {
           set_email('');
           set_password('');

@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { checkAndIncrementApiLimit } from './api_rate_limiter';
 
 const SUPERMARKET_SUPABASE_URL = import.meta.env.VITE_SUPERMARKET_SUPABASE_URL || 'https://placeholder-supermarket.supabase.co';
 const SUPERMARKET_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPERMARKET_SUPABASE_ANON_KEY || 'placeholder-key';
@@ -112,6 +113,12 @@ export async function searchProducts(
 
   // 2. IF NOT FOUND IN DB (OR forceApi IS TRUE), CALL SUPERMARKET REST API FOR SPECIFIC SUPERMARKET
   if (SUPERMARKET_API_BASE_URL) {
+    const rateCheck = checkAndIncrementApiLimit();
+    if (!rateCheck.allowed) {
+      console.warn('SuperMarket API rate limit reached:', rateCheck.message);
+      return [];
+    }
+
     try {
       const url = isSpecificSupermarket && targetSuper
         ? `${SUPERMARKET_API_BASE_URL}/supermercados/${targetSuper}/search?q=${encodeURIComponent(cleanQuery)}`

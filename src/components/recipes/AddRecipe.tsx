@@ -22,6 +22,7 @@ import {
 import type { Recipe, Ingredient } from '../../types';
 import { searchProducts, type SuperMarketProduct } from '../../services/supermarket_api';
 import { parse_product_info } from '../../utils/product_parser';
+import { checkAndIncrementApiLimit } from '../../services/api_rate_limiter';
 
 interface AddRecipeProps {
   on_add: (recipe: Omit<Recipe, 'id'>) => void;
@@ -92,6 +93,12 @@ export const AddRecipe = ({ on_add, handle_save_mapping, db_ingredients = [] }: 
   const [cargandoAI, set_cargando_ai] = useState<boolean>(false);
 
   const handle_generate_ai = async (): Promise<void> => {
+    const rateCheck = checkAndIncrementApiLimit();
+    if (!rateCheck.allowed) {
+      alert(rateCheck.message || 'Has alcanzado el límite diario de llamadas a la API.');
+      return;
+    }
+
     set_cargando_ai(true);
     try {
       const parsed_allergens = allergens_text

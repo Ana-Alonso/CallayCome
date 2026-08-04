@@ -1,6 +1,7 @@
 import type { Profile, FamilyMember } from '../types';
 import { get_supabase_client } from '../services/supabase_client';
 import { supermarketSupabase } from '../services/supermarket_api';
+import { validateEmailSecurity } from '../utils/email_verifier';
 
 interface UseAuthParams {
   set_profile: (profile: Profile | null) => void;
@@ -133,27 +134,49 @@ export const useAuth = ({
   };
 
   const handle_signup = async (email: string, pass: string): Promise<boolean> => {
+    const emailValidation = validateEmailSecurity(email);
+    if (!emailValidation.isValid) {
+      trigger_push("Error de Seguridad en Email", emailValidation.error || "Correo electrónico no válido.");
+      return false;
+    }
+
     const supabase = get_supabase_client();
     if (!supabase) return false;
-    const { data, error } = await supabase.auth.signUp({ email, password: pass });
+    const targetEmail = emailValidation.normalizedEmail || email.trim();
+    const { data, error } = await supabase.auth.signUp({ email: targetEmail, password: pass });
     if (error) {
       trigger_push("Error de Registro", error.message);
       return false;
     }
 
     // Sign up to supermarketSupabase in parallel
-    await supermarketSupabase.auth.signUp({ email, password: pass }).catch(e => {
+    await supermarketSupabase.auth.signUp({ email: targetEmail, password: pass }).catch(e => {
       console.warn("Failed to sign up to Supermarket database in parallel:", e);
     });
 
     if (data.session === null && data.user) {
       trigger_push(
-        "Revisa tu correo 📧",
-        "Se ha enviado un enlace de confirmación. Si no llega, pide al administrador que desactive la confirmación de email en Supabase."
+        "Verificación de Correo Enviada 📧",
+        "Se ha enviado un enlace de confirmación a tu correo. Debes verificarlo para acceder a tu cuenta."
       );
       return false;
     }
-    trigger_push("Registro exitoso 🎉", "Tu cuenta ha sido creada. ¡Bienvenido/a!");
+    trigger_push("Registro exitoso 🎉", "Tu cuenta ha sido creada y tu correo verificado.");
+    return true;
+  };
+
+  const resend_verification_email = async (email: string): Promise<boolean> => {
+    const supabase = get_supabase_client();
+    if (!supabase) return false;
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim()
+    });
+    if (error) {
+      trigger_push("Error al reenviar email", error.message);
+      return false;
+    }
+    trigger_push("Correo enviado 📧", "Te hemos reenviado el enlace de verificación.");
     return true;
   };
 
@@ -211,6 +234,7 @@ export const useAuth = ({
     load_user_profile,
     handle_login,
     handle_signup,
+    resend_verification_email,
     handle_logout,
     handle_delete_account,
     handle_change_password

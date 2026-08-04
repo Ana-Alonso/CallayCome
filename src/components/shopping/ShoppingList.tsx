@@ -186,7 +186,7 @@ export const ShoppingList = ({
       >
         <input
           type="text"
-          placeholder="Añadir ítem manual..."
+          placeholder="Ej: Servilletas"
           value={customName}
           onChange={e => setCustomName(e.target.value)}
           style={{

@@ -5,6 +5,7 @@ import { Boton } from '../common/Boton';
 import { CampoTexto } from '../common/CampoTexto';
 import { FormGroup, FormLabel, PantryInputGrid, SelectControl } from '../common';
 import { Dialogo } from '../common/Dialogo';
+import { checkAndIncrementApiLimit } from '../../services/api_rate_limiter';
 
 interface PantryFormProps {
   on_add: (name: string, qty: number, unit: string) => void;
@@ -56,6 +57,12 @@ export const PantryForm = ({ on_add }: PantryFormProps) => {
   const handle_barcode_lookup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!barcode.trim()) return;
+
+    const rateCheck = checkAndIncrementApiLimit();
+    if (!rateCheck.allowed) {
+      set_barcode_error(rateCheck.message || 'Límite de API alcanzado para hoy.');
+      return;
+    }
 
     set_loading_barcode(true);
     set_barcode_error('');

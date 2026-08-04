@@ -19,6 +19,7 @@ import {
 } from '../common';
 import type { FamilyMember, RecipeSuggestion, Profile } from '../../types';
 import type { User } from '@supabase/supabase-js';
+import { getDailyUsage } from '../../services/api_rate_limiter';
 
 interface FamilyMemberInfo {
   user_id: string;
@@ -720,6 +721,51 @@ export const MiFamilia = ({
 
       {user && (
         <>
+          {/* Card: Límite diario de API y Estado del Correo */}
+          <CardContainer style={{ padding: '16px', marginBottom: 16 }}>
+            <span style={{ fontSize: 14, fontWeight: 'bold', display: 'block', marginBottom: 12 }}>
+              ⚡ Límite Diario de Llamadas a la API
+            </span>
+            {(() => {
+              const apiUsage = getDailyUsage(user.id);
+              const percent = Math.min(100, Math.round((apiUsage.count / apiUsage.limit) * 100));
+              const isConfirmed = Boolean(user.email_confirmed_at);
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                      <span style={{ color: 'rgba(255,255,255,0.7)' }}>Consumo de hoy:</span>
+                      <span style={{ fontWeight: 600, color: apiUsage.remaining > 5 ? '#f26841' : '#ef5350' }}>
+                        {apiUsage.count} / {apiUsage.limit} llamadas ({apiUsage.remaining} restantes)
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ width: `${percent}%`, height: '100%', backgroundColor: percent > 85 ? '#ef5350' : '#f26841', transition: 'width 0.3s' }} />
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 10 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                      📧 Estado de la Cuenta
+                    </span>
+                    <div style={{ fontSize: 12, color: isConfirmed ? '#66bb6a' : '#ffa726', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {isConfirmed ? (
+                        <>
+                          <CheckCircle2 size={16} /> Correo electrónico verificado ({user.email})
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle size={16} /> Correo sin verificar ({user.email}). Revisa tu bandeja de entrada.
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </CardContainer>
+
           <CardContainer style={{ padding: '16px', marginBottom: 16 }}>
             <span style={{ fontSize: 14, fontWeight: 'bold', display: 'block', marginBottom: 12 }}>
               👁️ Accesibilidad (Discapacidad Visual)
