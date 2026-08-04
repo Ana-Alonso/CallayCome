@@ -1,7 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { validateEmailSecurity } from '../email_verifier';
+import { validateEmailSecurity, normalizeEmail } from '../email_verifier';
 
 describe('Email Verifier Security - LCDLA', () => {
+  it('should normalize Gmail and Googlemail addresses by stripping dots during login/signup', () => {
+    expect(normalizeEmail('u.s.e.r.name@gmail.com')).toBe('username@gmail.com');
+    expect(normalizeEmail('USER.Name@Gmail.Com ')).toBe('username@gmail.com');
+    expect(normalizeEmail('ana.maria.gomez@googlemail.com')).toBe('anamariagomez@googlemail.com');
+  });
+
+  it('should validate and normalize googlemail.com emails accurately', () => {
+    const res = validateEmailSecurity('u.s.e.r@googlemail.com');
+    expect(res.isValid).toBe(true);
+    expect(res.normalizedEmail).toBe('user@googlemail.com');
+  });
+
   it('should accept valid standard email addresses', () => {
     const res = validateEmailSecurity('usuario.ejemplo@gmail.com');
     expect(res.isValid).toBe(true);
