@@ -828,9 +828,10 @@ export const BudgetTab = ({
                   </Box>
                 )}
               </Box>
-            )))
-          )}
-        </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
 
         {/* RIGHT COLUMN: RECIPE CATALOG PRICE EXPLORER */}
         <Box style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
