@@ -1,6 +1,6 @@
 /**
- * Servicio de control de cuotas y límite de uso de API por cuenta de usuario (Daily Rate Limiter).
- * Permite limitar las llamadas a APIs externas e IA a una cuota máxima diaria por cuenta.
+ * Servicio de control de cuotas y límite de uso de API en cliente (localStorage).
+ * Permite limitar las llamadas a APIs externas e IA a una cuota máxima diaria por navegador; si se pasa userId, separa por cuenta dentro de ese navegador.
  */
 
 export const DEFAULT_DAILY_API_LIMIT = 50;
