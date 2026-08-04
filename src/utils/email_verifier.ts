@@ -82,8 +82,11 @@ export function validateEmailSecurity(email: string): EmailValidationResult {
 
   const [localPart, domain] = parts;
 
-  // 2. Bloquear dominios de correo desechables / temporales
-  if (DISPOSABLE_EMAIL_DOMAINS.has(domain)) {
+  // 2. Bloquear dominios de correo desechables / temporales (coincidencia exacta o subdominios)
+  const isDisposable = Array.from(DISPOSABLE_EMAIL_DOMAINS).some(
+    d => domain === d || domain.endsWith(`.${d}`)
+  );
+  if (isDisposable) {
     return {
       isValid: false,
       error: 'No se permiten direcciones de correo temporales o desechables. Utiliza un correo real.'
