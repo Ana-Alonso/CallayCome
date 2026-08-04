@@ -1,6 +1,6 @@
 /**
- * Servicio de control de cuotas y límite de uso de API en cliente (localStorage).
- * Permite limitar las llamadas a APIs externas e IA a una cuota máxima diaria por navegador; si se pasa userId, separa por cuenta dentro de ese navegador.
+ * Servicio de control de cuotas y límite de uso de API del cliente (localStorage) por cuenta de usuario o sesión activa.
+ * Permite limitar las llamadas a APIs externas e IA a una cuota máxima diaria por cuenta.
  */
 
 export const DEFAULT_DAILY_API_LIMIT = 50;
@@ -28,8 +28,30 @@ function getTodayKeyDate(): string {
 }
 
 function getStorageKey(userId?: string): string {
-  const accountId = userId && userId.trim() ? userId.trim() : 'anon_user';
-  return `callaycome_api_usage_${accountId}`;
+  let accountId = userId && userId.trim() ? userId.trim() : '';
+
+  if (!accountId) {
+    try {
+      // Intentar obtener la sesión activa de Supabase del localStorage para enlazar automáticamente el userId del usuario autenticado
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.includes('auth-token') || k.includes('supabase.auth'))) {
+          const val = localStorage.getItem(k);
+          if (val) {
+            const parsed = JSON.parse(val);
+            const foundId = parsed?.user?.id || parsed?.currentSession?.user?.id;
+            if (foundId) {
+              accountId = foundId;
+              break;
+            }
+          }
+        }
+      }
+    } catch {}
+  }
+
+  const finalKey = accountId || 'anon_user';
+  return `callaycome_api_usage_${finalKey}`;
 }
 
 /**
